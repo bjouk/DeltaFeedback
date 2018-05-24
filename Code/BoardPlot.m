@@ -8,6 +8,7 @@ classdef BoardPlot < handle
     % one board's worth of time-series data.  It stores data and plots it 
     % on axes, lets you choose which chip to plot and which group of 
     % channels.
+    %
     % See also read_continuously, episodic_recording, and two_boards.
     
     properties
@@ -68,10 +69,55 @@ classdef BoardPlot < handle
         %Microphone data
         MicrophoneFile
 
+        % Jingyuan
+        hilbert_filter_order 
+         
+        coeff_Spectremax 
         
+        coeff_bullfmin 
+        coeff_bullfmax 
+        bullchannel 
+        bullpxx
+        bullfreq
+        bullfmin_indice
+        bullfmax_indice
+        bullFilt
+        
+        coeff_HPCfmin 
+        coeff_HPCfmax 
+        HPCchannel 
+        HPCpxx
+        HPCfreq
+        HPCfmin_indice
+        HPCfmax_indice
+        HPCFilt
+        
+        coeff_PFCxfmin 
+        coeff_PFCxfmax 
+        PFCxchannel 
+        PFCxpxx
+        PFCxfreq
+        PFCxfmin_indice
+        PFCxfmax_indice
+        PFCxFilt
+        
+        ratioData
+        
+        result
+        
+        gamma_prob
+        gamma_value
+        ratio_prob
+        ratio_value
+        
+        threshold_status
+        vline_phase
+        hline_phase
+        vline_gamma
+        hline_ratio
     end
     
-    properties (Access = private, Hidden = false)
+    properties (Access = private, Hidden = true)
         % Timestamps for plotting
 %         Timestamps
 %         
@@ -96,6 +142,28 @@ classdef BoardPlot < handle
         
         SnapshotLines
         
+        % Data substracted from Amplifier for spectre plotting Jingyuan
+        BullData
+        HPCData
+        PFCxData
+        
+        % Spectre plot axes (Axes type) Jingyuan
+        SleepStageAxes
+        % Spectre Plot lines (array of Line type)Jingyuan
+        SleepStageLinesLeft
+        SleepStageLinesRight
+        
+        HilbertPlotAxes
+        HilbertPlotLines
+        
+        PhaseSpaceAxes
+        PhaseSpaceLines
+        
+        gamma_distributionAxes
+        gamma_distributionLines
+        ratio_distributionAxes
+        ratio_distributionLines
+
         % We'll implement a circular queue of data in Amplifiers; 
         % this is the index where we should store the next datablock
         %
@@ -114,7 +182,8 @@ classdef BoardPlot < handle
     methods
 
         
-        function obj = BoardPlot(data_plot, snapshot, num_channels, samplingfreq)
+        function obj = BoardPlot(data_plot, hilbert_plot,sleep_stage, phase_space,gamma_distr,ratio_distr,...
+                                snapshot, num_channels, samplingfreq)
         % Constructor.
         %
         % Example:
@@ -124,6 +193,35 @@ classdef BoardPlot < handle
             obj.fired=0;
             obj.detected=0;
             obj.DataPlotAxes = data_plot;
+            
+            
+            obj.SleepStageAxes = sleep_stage; %Jingyuan 
+            obj.HilbertPlotAxes = hilbert_plot;
+            obj.hilbert_filter_order = 200;
+            obj.bullchannel = 31;
+            obj.coeff_bullfmin = 50;
+            obj.coeff_bullfmax = 70;
+            obj.HPCchannel = 28;
+            obj.coeff_HPCfmin = 8;
+            obj.coeff_HPCfmax = 12;
+            obj.PFCxchannel = 28;
+            obj.coeff_PFCxfmin = 2;
+            obj.coeff_PFCxfmax = 4;
+            obj.coeff_Spectremax = 100;
+            
+            obj.bullFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
+                                obj.coeff_bullfmin,'CutoffFrequency2',obj.coeff_bullfmax,'SampleRate',samplingfreq);
+            obj.HPCFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
+                                obj.coeff_HPCfmin,'CutoffFrequency2',obj.coeff_HPCfmax,'SampleRate',samplingfreq);
+            obj.PFCxFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
+                                obj.coeff_PFCxfmin,'CutoffFrequency2',obj.coeff_PFCxfmax,'SampleRate',samplingfreq);
+            obj.result = [];
+            
+            obj.PhaseSpaceAxes = phase_space; %Jingyuan
+            obj.gamma_distributionAxes = gamma_distr;
+            obj.ratio_distributionAxes = ratio_distr;
+            
+            
             obj.SnapshotAxes=snapshot;
             obj.NumChannels = num_channels;
             obj.SaveIndex = 1;
@@ -157,7 +255,7 @@ classdef BoardPlot < handle
             obj.Math_buffer_to_filter=[0];
             obj.Math_buffer_filtered=[0];
             obj.Math_filtered=0;
-
+            
             obj.Amplifiers = zeros(num_channels, obj.num_points); %pas de voies inutiles
             obj.Math = zeros(1, obj.num_points);
             obj.Math_filtered_display = zeros(1, obj.num_points);
@@ -205,6 +303,65 @@ classdef BoardPlot < handle
 
             set(obj.SnapshotAxes, 'YLim', [-0.5 (1 + num_channels*0.5)]);
             set(obj.SnapshotAxes, 'XLim', [0 obj.Time_real((obj.nbrptbf+obj.nbrptaft+2))]);
+            
+            % Creat the plot area for Hilbert transform
+            axes(obj.HilbertPlotAxes);
+            obj.HilbertPlotLines = plot(0,0,0,0,0,0,0,0,0,0,0,0);
+            set(obj.HilbertPlotLines(1),'LineWidth',1);
+            set(obj.HilbertPlotLines(2),'Color','blue');
+            set(obj.HilbertPlotLines(3),'Color',[0 0.5 0],'LineWidth',1);
+            set(obj.HilbertPlotLines(4),'Color',[0 0.5 0]);
+            set(obj.HilbertPlotLines(5),'Color','red','LineWidth',1);
+            set(obj.HilbertPlotLines(6),'Color','red');
+            a = gca;
+            l = get(a, 'XLabel');
+            set(l, 'String', 'Time(ms)');
+            set(l, 'FontSize', 9);
+            l = get(a, 'YLabel');
+            set(l, 'FontSize', 9);
+            
+            % Create and set up the plot area for the spectre Jingyuan
+            axes(obj.SleepStageAxes);
+            [obj.SleepStageAxes,obj.SleepStageLinesLeft,obj.SleepStageLinesRight] = plotyy(0,0,0,0,'stairs','plot');
+            set(obj.SleepStageAxes(1),{'XLimMode'},{'auto'});
+            set(obj.SleepStageAxes(2),{'XLimMode'},{'auto'});
+            set(obj.SleepStageAxes(2),{'YTickMode'},{'auto'});
+            set(obj.SleepStageAxes(2),'YColor','r');
+            set(obj.SleepStageAxes(1),'YTick',[]);
+            l = get(obj.SleepStageAxes(1), 'XLabel');
+            set(l, 'String', 'time (s)');
+            set(l, 'FontSize', 9);
+            set(obj.SleepStageAxes(1), 'YLim', [0 4]);
+            set(obj.SleepStageAxes(2), 'YLim', [0 10]);
+            set (obj.SleepStageLinesRight,'Color','r');
+            
+            
+            % Create and set up the plot area of phase space and distribution Jingyuan
+            axes (obj.PhaseSpaceAxes);
+            obj.PhaseSpaceLines = scatter([],[],'.');
+            set(gca,'XTick',[]);
+            set(gca,'YTick',[]);
+            set(obj.PhaseSpaceAxes, 'YLim', [-0.5 2.5]);
+            set(obj.PhaseSpaceAxes, 'XLim', [-8 -5.5]);
+
+            axes(obj.gamma_distributionAxes);
+            obj.gamma_distributionLines = plot(0,0);
+            set(gca,'YTick',[]);
+            a = gca;
+            l = get(a, 'XLabel');
+            set(l, 'String', 'Gamma Power (log scale)');
+            set(l, 'FontSize', 9);
+            set(obj.gamma_distributionAxes, 'XLim', [-8 -4]);
+                        
+            axes(obj.ratio_distributionAxes);
+            obj.ratio_distributionLines = plot(0,0);
+            set(gca,'XTick',[]);
+            a = gca;
+            l = get(a, 'YLabel');
+            set(l, 'String', 'Theta / Delta power (log scale)');
+            set(l, 'FontSize', 9);
+            set(obj.ratio_distributionAxes, 'YLim', [-2 3]);
+            
         end
         
         function set_visible1(obj,visiblevalue)
@@ -253,7 +410,7 @@ classdef BoardPlot < handle
             else
                 obj.DataPlotLines(6).Visible='on';
             end    
-        end    
+        end        
         
         
         function refresh_display_now(obj,filter_activated)
@@ -277,16 +434,129 @@ classdef BoardPlot < handle
                 % See note above, where SaveIndex is defined
                 indices = [indices(obj.SaveIndex:end) indices(1:obj.SaveIndex-1)];
             end
-            
-  
+
             indices=indices(obj.num_points-obj.nbrptbf-obj.nbrptaft:end);
-%             myAmplifiers=myAmplifiers(:,obj.num_points-obj.nbrptaft-obj.nbrptaft);
-%             mycell=num2cell(obj.Amplifiers(:,indices), 2);
+    % myAmplifiers=myAmplifiers(:,obj.num_points-obj.nbrptaft-obj.nbrptaft);
+    % mycell=num2cell(obj.Amplifiers(:,indices), 2);
             
             mycell=[num2cell(obj.Amplifiers(:,indices),2);num2cell(obj.Math(:,indices),2);num2cell(obj.SoundFile(:,indices),2);num2cell(obj.ThresholdFile(:,indices),2);num2cell(obj.Math_filtered_display(:,indices),2)];
             set(obj.SnapshotLines, {'YData'},mycell);        
         end
         
+        function Bull_filterdesign (obj)
+             obj.bullFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
+                                obj.coeff_bullfmin,'CutoffFrequency2',obj.coeff_bullfmax,'SampleRate',samplingfreq);
+                   
+        end
+        
+        function HPC_filterdesign (obj)
+            obj.HPCFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
+                                obj.coeff_HPCfmin,'CutoffFrequency2',obj.coeff_HPCfmax,'SampleRate',samplingfreq);
+        end
+        
+        function PFCx_filterdesign(obj)
+             obj.PFCxFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
+                                obj.coeff_PFCxfmin,'CutoffFrequency2',obj.coeff_PFCxfmax,'SampleRate',samplingfreq);
+        end
+                
+        function hilbert_process_now(obj)
+        % Jingyuan filtre the raw data and do the hilbert transfer  
+        timestamps = 0:3/(length(obj.BullData)-1):3;
+        
+        set (obj.HilbertPlotLines(1),'XData',timestamps,'YData',obj.BullData);
+        obj.BullData = filter (obj.bullFilt,obj.BullData); %filter the data between fmin and fmax 
+        obj.BullData = abs( hilbert(obj.BullData)); % hilbert transfer
+        set (obj.HilbertPlotLines(2),'XData',timestamps,'YData',obj.BullData);
+        obj.result(1) = mean (obj.BullData);
+        
+        HPCData_display = obj.HPCData + 2e-3*0.5;
+        set (obj.HilbertPlotLines(3),'XData',timestamps,'YData',HPCData_display);
+        obj.HPCData = filter (obj.HPCFilt,obj.HPCData); %filter the data between fmin and fmax
+        obj.HPCData = abs( hilbert(obj.HPCData)); % hilbert transfer
+        HPCData_display = obj.HPCData +2e-3*0.5;
+        set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',HPCData_display); 
+        obj.result(2) = mean (obj.HPCData);
+        
+
+        PFCxData_display = obj.PFCxData + 4e-3*0.5;
+        set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',PFCxData_display);
+        obj.PFCxData = filter (obj.PFCxFilt,obj.PFCxData); %filter the data between fmin and fmax
+        obj.PFCxData = abs( hilbert(obj.PFCxData)); % hilbert transfer
+        PFCxData_display = obj.PFCxData + 4e-3*0.5;
+        set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',PFCxData_display);
+        % obj.PFCxData(obj.PFCxData < 100)= 100;
+        obj.result(3) = mean (obj.PFCxData);
+  
+        obj.ratioData = obj.HPCData./obj.PFCxData;
+        obj.result(4)= mean(obj.ratioData);
+            
+        obj.BullData = [];
+        obj.HPCData = [];
+        obj.PFCxData = [];
+         end
+         
+         function refresh_sleepstage_now (obj,timestamps,sleepstage)
+             set (obj.SleepStageLinesLeft,'XData',timestamps,'YData',sleepstage);
+         end
+         
+         function detection_number_now (obj,timestamps,nb_detection)
+             set(obj.SleepStageAxes(2),{'XLimMode'},{'auto'});
+             set (obj.SleepStageLinesRight,'XData',timestamps,'YData',nb_detection);
+         end
+         
+        function refresh_phasespace_now(obj,timestamps,gamma,ratio) 
+
+            if (size(timestamps)>1)%delete the initialization point except there is only one point
+                timestamps (1) = [];
+                gamma (1) = [];
+                ratio (1) = [];
+            end
+            
+            gamma = log10(gamma);
+            ratio = log10(ratio);
+            
+            
+            if (timestamps(end)>2*3600) % only display the points in the last 2 h
+                indice = find (timestamps > (timestamps(end)-2*3600),1);
+                gamma(1:indice-1) = [];
+                ratio(1:indice-1) = [];
+            end
+            
+            [obj.gamma_prob,obj.gamma_value] = ksdensity (gamma);
+            [obj.ratio_prob,obj.ratio_value] = ksdensity (ratio); 
+            
+            
+            set(obj.PhaseSpaceLines,'XData',gamma,'YData',ratio);
+            set(obj.PhaseSpaceAxes, 'XLim', [(min(obj.gamma_value)-1) (max(obj.gamma_value)+1)]);
+            set(obj.PhaseSpaceAxes, 'YLim', [(min(obj.ratio_value)-1) (max(obj.ratio_value)+1)]);
+
+            
+            set(obj.gamma_distributionLines,'XData',obj.gamma_value,'YData',obj.gamma_prob);
+             set(obj.gamma_distributionAxes, 'XLim',  [(min(obj.gamma_value)-1) (max(obj.gamma_value)+1)]);
+             
+
+            set(obj.ratio_distributionLines,'XData',obj.ratio_prob,'YData',obj.ratio_value);
+            set(obj.ratio_distributionAxes, 'YLim', [(min(obj.ratio_value)-1) (max(obj.ratio_value)+1)]);
+            
+            
+        end
+        
+        function set_thethreshold_now(obj,gamma_threshold,ratio_threshold)
+
+            delete (obj.vline_phase); %firstly clear the old reference line
+            delete (obj.hline_phase);
+            delete (obj.vline_gamma);
+            delete (obj.hline_ratio);
+            
+             if (obj.threshold_status==1) 
+                obj.vline_phase = line([gamma_threshold gamma_threshold],[(min(obj.ratio_value)-1) (max(obj.ratio_value)+1)],'LineStyle','--','Color','red','Parent',obj.PhaseSpaceAxes);
+                obj.hline_phase = refline(obj.PhaseSpaceAxes,[0 ratio_threshold]);
+                set (obj.hline_phase,'LineStyle','--');
+                obj.vline_gamma = line([gamma_threshold gamma_threshold],[0 1],'LineStyle','--','Color','red','Parent',obj.gamma_distributionAxes);
+                obj.hline_ratio = refline(obj.ratio_distributionAxes,[0 ratio_threshold]);
+                set (obj.hline_ratio,'LineStyle','--');
+            end
+        end
         
         function obj = reset_buffer_to_filter(obj, n_points)
             %methods to reset the buffer used in the filters
@@ -297,6 +567,18 @@ classdef BoardPlot < handle
         end
         function obj = set_coeff_filter(obj,coeff)
             obj.coeff_filter = coeff;
+        end
+        
+        % Jingyuan
+        function obj = set_coeff_spectrefreq(obj,spectrefmin,spectrefmax)
+            obj.coeff_spectrefmin = spectrefmin;
+            obj.coeff_spectrefmax = spectrefmax;
+        end
+        
+        function obj = Spectre_data_block(obj,datablock)  % Jingyuan Sve the data from Datablock to a new array
+            obj.BullData = [obj.BullData,datablock.Chips{obj.ChipIndex}.Amplifiers(obj.bullchannel,:)];
+            obj.HPCData = [obj.HPCData,datablock.Chips{obj.ChipIndex}.Amplifiers(obj.HPCchannel,:)];
+            obj.PFCxData = [obj.PFCxData,datablock.Chips{obj.ChipIndex}.Amplifiers(obj.PFCxchannel,:)];
         end
         
         function obj = process_data_block(obj, datablock,arduino,filter_activated)
@@ -443,6 +725,7 @@ classdef BoardPlot < handle
             % ATTENTION: we don't inject all the data to these properties,
             % only take ptperdb(here 1 point) to inject. Otherwise the
             % display will roll too rapidely in the screen.
+           
             
             % Scale to mV, rather than V.
             obj.Amplifiers(obj.StoreChannels,obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1)) = ...
@@ -474,7 +757,19 @@ classdef BoardPlot < handle
         
         
         function a=sendoutchannels(obj) %Kejian
-            a=obj.Channels;
+            a = obj.Channels;
+        end
+        
+        function b=sendoutspectrechannel(obj) %Jingyuan
+            b = [obj.bullchannel,obj.HPCchannel,obj.PFCxchannel];
+        end
+        
+        function c=sendoutspectrefmin(obj) %Jingyuan
+            c = [obj.coeff_bullfmin,obj.coeff_HPCfmin, obj.coeff_PFCxfmin]; 
+        end
+    
+        function d=sendoutspectrefmax(obj) %Jingyuan
+            d = [obj.coeff_bullfmax, obj.coeff_HPCfmax,obj.coeff_PFCxfmax]; 
         end
 
     end
