@@ -267,7 +267,6 @@ classdef BoardPlot < handle
             obj.nbrptbf=ceil(obj.durationbf*obj.ptperdb/obj.durationdb);
             obj.nbrdbaft=ceil(obj.durationaft/obj.durationdb);
             obj.nbrptaft=ceil(obj.durationaft*obj.ptperdb/obj.durationdb);
-            
             % Channels are offset, so they're not all on top of each other
             obj.Offsets = (1:num_channels)' * ones(1,60) * 1e-3*0.5;
             
