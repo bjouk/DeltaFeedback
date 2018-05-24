@@ -227,7 +227,6 @@ classdef BoardPlot < handle
             obj.SaveIndex = 1;
             obj.countermax=4/(1/samplingfreq)/60;  %default refractory time for fire is 4
             obj.countermax_detection=0.3/(1/samplingfreq)/60; %refractory time for detection is 0.3s
-            obj.sound_tone=0;
             
             
             
@@ -685,7 +684,7 @@ classdef BoardPlot < handle
                                         newdata_sound=3*ones(1,obj.ptperdb);
                                     elseif obj.sound_mode==1 % 1 sound
                                         if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,1);
+                                            fwrite(arduino,1*10+obj.sound_tone);
                                         end
                                         newdata_sound=3*ones(1,obj.ptperdb);
                                     elseif obj.sound_mode==2 %10 sound

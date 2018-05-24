@@ -47,7 +47,7 @@ function varargout = read_continuously(varargin)
 
 % Edit the above text to modify the response to help read_continuously
 
-% Last Modified by GUIDE v2.5 18-May-2018 16:10:39
+% Last Modified by GUIDE v2.5 24-May-2018 17:11:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -414,6 +414,7 @@ set(handles.ArmForFireing_pushbutton,'Enable','off');
     set(handles.radiobutton9,'Enable','off');
     set(handles.edit14,'Enable','off');
 set(handles.edit10,'Enable','off');
+
 
 
 set(hObject, 'Enable', 'off');
@@ -1332,22 +1333,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-% --- Executes on button press in gaussian.
-function gaussian_Callback(hObject, eventdata, handles)
-% hObject    handle to gaussian (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles.boardUI.Plot.sound_tone=1;
-% Hint: get(hObject,'Value') returns toggle state of gaussian
 
-
-% --- Executes on button press in tone.
-function tone_Callback(hObject, eventdata, handles)
-% hObject    handle to tone (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles.boardUI.Plot.sound_tone=0;
-% Hint: get(hObject,'Value') returns toggle state of tone
 
 
 function edit22_Callback(hObject, eventdata, handles) %Jingyuan fmin selection for bull spectre
@@ -1641,3 +1627,23 @@ function pushbutton18_Callback(hObject, eventdata, handles) %Jingyuan OK button 
 % handles    structure with handles and user data (see GUIDATA)
 handles.boardUI.Plot.threshold_status = 1;
 handles.boardUI.set_thethreshold(handles.gamma_threshold,handles.ratio_threshold);
+
+
+
+
+% --- Executes on button press in tone.
+function tone_Callback(hObject, eventdata, handles)
+% hObject    handle to tone (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.boardUI.Plot.sound_tone = 0
+% Hint: get(hObject,'Value') returns toggle state of tone
+
+
+% --- Executes on button press in Gaussian.
+function Gaussian_Callback(hObject, eventdata, handles)
+% hObject    handle to Gaussian (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.boardUI.Plot.sound_tone=1;
+% Hint: get(hObject,'Value') returns toggle state of Gaussian
