@@ -1,3 +1,4 @@
+
 classdef BoardUI < handle
     %BOARDUI Class containing UI data related to a single board
     %
@@ -25,27 +26,41 @@ classdef BoardUI < handle
         FifoLag             % Handle to the UI element
         FifoPercentageFull  % Handle to the UI element
                
-         
+        bullchannel % Jingyuan the channel selected for bull plot
+        bullfmin
+        bullfmax
+        
+        HPCchannel
+        HPCfmin
+        HPCfmax
+        
+        PFCxchannel
+        PFCxfmin
+        PFCxfmax
         
         TheChannels  %Kejian for just one channel
-        %DataBlock_temp %Kejian
+        DataBlock_temp %Kejian
         Plot2 %Kejian
         ChipIndex %Kejian
         FilterDef %Kejian
     end
     
     methods
-        function obj = BoardUI(board, data_plot, snapshot, chips_popup, channels_popup, fifolag, fifopercentagefull, num_channels)
+        function obj = BoardUI(board, data_plot,hilbert_plot,sleep_stage,phase_space,gamma_distr,ratio_distr,...
+                              snapshot, chips_popup, channels_popup, fifolag, fifopercentagefull, num_channels)
         % Constructor
         %
         % board              handle to an rhd2000.Board object
         % data_plot          UI object: data plot axes
+        % hilbert_plot       UI object: raw data and data after hilbert
+        % tranfrom
+        % sleep_stage        UI object: sleep stage Jingyuan
+        % spectre_channel    UI object: spectre channel selected Jingyuan
         % chips_popup        UI object: popup that chooses Port A, MISO 1, etc.
         % channels_popup     UI object: popup that chooses channels 1-32, 33-64, etc.
         % fifolag            UI object: FIFO Lag text
         % fifopercentagefull UI object: FIFO Percentage Full text
         % num_channels       number of channels to display at the same time
-        
             if nargin == 6
                 num_channels = 32;
             end
@@ -55,7 +70,9 @@ classdef BoardUI < handle
             obj.ChannelsToDisplay = channels_popup;
             obj.FifoLag = fifolag;
             obj.FifoPercentageFull = fifopercentagefull;
-            obj.Plot = BoardPlot(data_plot, snapshot, num_channels, frequency(obj.Board.SamplingRate));
+            
+            obj.Plot = BoardPlot(data_plot,hilbert_plot,sleep_stage,phase_space,gamma_distr,ratio_distr,...
+                                 snapshot,num_channels,frequency(obj.Board.SamplingRate));
             obj.TheChannels=[1 2];
             
             % Set the Chips popup in the Display area to a list of allowed chips
@@ -63,6 +80,37 @@ classdef BoardUI < handle
             obj.set_chip();
             
         end
+        
+        
+        function hilbert_process (obj) %Jingyuan
+        % update the spectre plot
+            obj.Plot.hilbert_process_now();
+        end
+        
+        function Bull_filterdesign (obj)
+             obj.Plot.Bull_filterdesign ();        
+        end
+        
+        function HPC_filterdesign (obj)
+            obj.Plot.HPC_filterdesign();
+        end
+        
+        function PFCx_filterdesign (obj)
+            obj.Plot.PFCx_filterdesign();
+        end
+        
+        function refresh_sleepstage(obj,timestamps,sleepstage)
+            obj.Plot.refresh_sleepstage_now (timestamps,sleepstage);
+        end
+        
+        function detection_number(obj,timestamps,nb_detection)
+            obj.Plot.detection_number_now (timestamps,nb_detection);
+        end
+        
+        function refresh_phasespace (obj,timestamps,gamma,ratio)
+            obj.Plot.refresh_phasespace_now(timestamps,gamma,ratio);
+        end
+        
         
         function refresh_display(obj,filter_activated)
         % Update the plots and FIFO text.
@@ -117,6 +165,10 @@ classdef BoardUI < handle
             obj.Plot.process_data_block(datablock,arduino,filter_activated);
         end
         
+        function obj = Spectre_data_block(obj,datablock)
+            obj.Plot.Spectre_data_block(datablock);
+        end
+        
         function obj=set_channels_chips(obj)
             obj = set_channels(obj);
             obj.ChipIndex = obj.ChipIndices(get(obj.ChipsPopup, 'Value'));
@@ -141,14 +193,80 @@ classdef BoardUI < handle
                                      get(obj.ChannelsToDisplay, 'Value'), ...
                                      chip);
              
-             obj.Plot.Channels=obj.TheChannels; %Kejian   
+             obj.Plot.Channels=obj.TheChannels; %Kejian
         end
+        
+        
+        function obj = set_bullchannel(obj) %Jingyuan 
+             
+             obj.Plot.bullchannel=obj.bullchannel;
+        end
+        
+         function obj = set_bullfrequence(obj)%Jingyuan  
+             obj.Plot.coeff_bullfmin =obj.bullfmin;
+             obj.Plot.coeff_bullfmax =obj.bullfmax; 
+         end
+         
+        function obj = set_HPCchannel(obj) %Jingyuan 
+             
+             obj.Plot.HPCchannel=obj.HPCchannel;
+        end
+        
+         function obj = set_HPCfrequence(obj)%Jingyuan  
+             obj.Plot.coeff_HPCfmin =obj.HPCfmin;
+             obj.Plot.coeff_HPCfmax =obj.HPCfmax; 
+         end
+         
+         function obj = set_PFCxchannel(obj) %Jingyuan 
+             
+             obj.Plot.PFCxchannel=obj.PFCxchannel;
+        end
+        
+         function obj = set_PFCxfrequence(obj)%Jingyuan  
+             obj.Plot.coeff_PFCxfmin =obj.PFCxfmin;
+             obj.Plot.coeff_PFCxfmax =obj.PFCxfmax; 
+         end
+        
         
         function obj=set_thechannels(obj,TheChannels) %Kejian
             obj.TheChannels=TheChannels;
         end
-     
+        
+        
+        function obj=set_thebullchannel(obj,bullchannel) %Jingyuan
+            obj.bullchannel=bullchannel;
+        end
+       
+        function obj=set_thebullfrequence(obj,bullfmin, bullfmax) %Jingyuan
+            obj.bullfmin=bullfmin;
+            obj.bullfmax=bullfmax;
+        end
+       
+        function obj=set_theHPCchannel(obj,HPCchannel) %Jingyuan
+            obj.HPCchannel=HPCchannel;
+        end
+       
+        function obj=set_theHPCfrequence(obj,HPCfmin, HPCfmax) %Jingyuan
+            obj.HPCfmin=HPCfmin;
+            obj.HPCfmax=HPCfmax;
+        end
+        
+        function obj=set_thePFCxchannel(obj,PFCxchannel) %Jingyuan
+            obj.PFCxchannel=PFCxchannel;
+        end
+       
+        function obj=set_thePFCxfrequence(obj,PFCxfmin, PFCxfmax) %Jingyuan
+            obj.PFCxfmin=PFCxfmin;
+            obj.PFCxfmax=PFCxfmax;
+        end
+        
+        function set_thethreshold (obj,gamma_threshold,ratio_threshold)
+            obj.Plot.set_thethreshold_now(gamma_threshold,ratio_threshold);
+        end
+            
+       
     end
+    
     
     methods (Static=true)
         function [store_channels, channels] = get_channels(num_channels, display_index, chip)
