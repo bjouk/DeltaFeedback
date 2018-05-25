@@ -89,11 +89,13 @@ handles.spectre_lastcal = now*24*3600; % Jingyuan the last time we calculate the
 handles.spectre_counter = 0;  % Jingyuan note relative calculation time of the spectre data
 handles.fire_lastcounter = 0; % the number of detection beyond threshold from 0s to (now-3)s
 
+
 handles.boardUI = BoardUI(handles.driver.create_board(), ...
                           handles.data_plot, handles.hilbert_plot,handles.sleep_stage,handles.phase_space, handles.gamma_distribution,...
                           handles.ratio_distribution, handles.snapshot, handles.chips, handles.channels_to_display, ...
                           handles.FifoLag, handles.FifoPercentageFull,2);  %Jingyuan
-                     
+handles.boardUI.Plot.sound_tone = 0; % default sound is tone
+  
 handles.saveUI = SaveConfigUI(handles.intan, handles.file_per_signal_type, ...
                               handles.file_per_channel, handles.save_file_dialog);
 
@@ -148,8 +150,8 @@ handles.refresh_count = 0;
 
 handles.thechannels=[1 2];%Kejian defaut value for the gui.
 handles.boardUI.set_thechannels([1 2]); %Kejian
-
-
+handles.gamma_threshold=6.5; %Default value for the threshold
+handles.ratio_threshold=1.1;% Default value for the ratio
 % Clear the saving information
 handles.saving = false;
 handles.saveUI.BaseName = '';
@@ -1636,7 +1638,7 @@ function tone_Callback(hObject, eventdata, handles)
 % hObject    handle to tone (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.boardUI.Plot.sound_tone = 0
+handles.boardUI.Plot.sound_tone = 0;
 % Hint: get(hObject,'Value') returns toggle state of tone
 
 
