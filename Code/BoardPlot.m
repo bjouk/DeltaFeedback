@@ -109,7 +109,7 @@ classdef BoardPlot < handle
         gamma_value
         ratio_prob
         ratio_value
-        
+        gamma_threshold
         threshold_status
         vline_phase
         hline_phase
@@ -197,22 +197,23 @@ classdef BoardPlot < handle
             
             obj.SleepStageAxes = sleep_stage; %Jingyuan 
             obj.HilbertPlotAxes = hilbert_plot;
-            obj.hilbert_filter_order = 200;
+            obj.hilbert_filter_order = 1024;
             obj.bullchannel = 31;
             obj.coeff_bullfmin = 50;
             obj.coeff_bullfmax = 70;
             obj.HPCchannel = 28;
-            obj.coeff_HPCfmin = 8;
-            obj.coeff_HPCfmax = 12;
+            obj.coeff_HPCfmin = 5;
+            obj.coeff_HPCfmax = 10;
             obj.PFCxchannel = 28;
             obj.coeff_PFCxfmin = 2;
-            obj.coeff_PFCxfmax = 4;
+            obj.coeff_PFCxfmax = 5;
             obj.coeff_Spectremax = 100;
             
             obj.bullFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
                                 obj.coeff_bullfmin,'CutoffFrequency2',obj.coeff_bullfmax,'SampleRate',samplingfreq);
-            obj.HPCFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
-                                obj.coeff_HPCfmin,'CutoffFrequency2',obj.coeff_HPCfmax,'SampleRate',samplingfreq);
+            %obj.HPCFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
+                                %obj.coeff_HPCfmin,'CutoffFrequency2',obj.coeff_HPCfmax,'SampleRate',samplingfreq);
+            obj.HPCFilt =
             obj.PFCxFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
                                 obj.coeff_PFCxfmin,'CutoffFrequency2',obj.coeff_PFCxfmax,'SampleRate',samplingfreq);
             obj.result = [];
@@ -459,29 +460,28 @@ classdef BoardPlot < handle
                 
         function hilbert_process_now(obj)
         % Jingyuan filtre the raw data and do the hilbert transfer  
-        timestamps = 0:3/(length(obj.BullData)-1):3;
+        timestamps = 0:2/(length(obj.BullData)-1):2;
         
-        set (obj.HilbertPlotLines(1),'XData',timestamps,'YData',obj.BullData);
+        %set (obj.HilbertPlotLines(1),'XData',timestamps,'YData',obj.BullData);
         obj.BullData = filter (obj.bullFilt,obj.BullData); %filter the data between fmin and fmax 
+        set (obj.HilbertPlotLines(1),'XData',timestamps,'YData',obj.BullData);
         obj.BullData = abs( hilbert(obj.BullData)); % hilbert transfer
         set (obj.HilbertPlotLines(2),'XData',timestamps,'YData',obj.BullData);
         obj.result(1) = mean (obj.BullData);
         
-        HPCData_display = obj.HPCData + 2e-3*0.5;
-        set (obj.HilbertPlotLines(3),'XData',timestamps,'YData',HPCData_display);
+        %set (obj.HilbertPlotLines(3),'XData',timestamps,'YData',HPCData);
         obj.HPCData = filter (obj.HPCFilt,obj.HPCData); %filter the data between fmin and fmax
+        set (obj.HilbertPlotLines(3),'XData',timestamps,'YData',obj.HPCData+ 2e-3*0.5);
         obj.HPCData = abs( hilbert(obj.HPCData)); % hilbert transfer
-        HPCData_display = obj.HPCData +2e-3*0.5;
-        set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',HPCData_display); 
+        set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',obj.HPCData+ 2e-3*0.5); 
         obj.result(2) = mean (obj.HPCData);
         
 
-        PFCxData_display = obj.PFCxData + 4e-3*0.5;
-        set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',PFCxData_display);
+        %set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',PFCxData+ 4e-3*0.5);
         obj.PFCxData = filter (obj.PFCxFilt,obj.PFCxData); %filter the data between fmin and fmax
+        set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',obj.PFCxData+ 4e-3*0.5);
         obj.PFCxData = abs( hilbert(obj.PFCxData)); % hilbert transfer
-        PFCxData_display = obj.PFCxData + 4e-3*0.5;
-        set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',PFCxData_display);
+        set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',obj.PFCxData+ 4e-3*0.5);
         % obj.PFCxData(obj.PFCxData < 100)= 100;
         obj.result(3) = mean (obj.PFCxData);
   
