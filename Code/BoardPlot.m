@@ -198,13 +198,13 @@ classdef BoardPlot < handle
             
             obj.SleepStageAxes = sleep_stage; %Jingyuan 
             obj.HilbertPlotAxes = hilbert_plot;
-            obj.hilbert_filter_order = 1024;
+            obj.hilbert_filter_order = 332;
             obj.bullchannel = 12;
             obj.coeff_bullfmin = 50;
             obj.coeff_bullfmax = 70;
             obj.HPCchannel = 16;
-            obj.coeff_HPCfmin = 5;
-            obj.coeff_HPCfmax = 10;
+            obj.coeff_HPCfmin = 8;
+            obj.coeff_HPCfmax = 12;
             obj.PFCxchannel = 16;
             obj.coeff_PFCxfmin = 2;
             obj.coeff_PFCxfmax = 4;
@@ -263,7 +263,6 @@ classdef BoardPlot < handle
             obj.Math_filtered_display = zeros(1, obj.num_points);
             obj.SoundFile=zeros(1, obj.num_points)-0.5*ones(1,obj.num_points);
             obj.ThresholdFile=zeros(1,obj.num_points);
-            obj.MicrophoneFile = zeros(1, obj.num_points); %Stocking data from the microphone
             obj.durationdb=60/samplingfreq;
             obj.durationbf=0.200; %s for showing the snapshot. the time before the detection to show
             obj.durationaft=0.800; %s
@@ -463,18 +462,16 @@ classdef BoardPlot < handle
         end
                 
         function hilbert_process_now(obj)
-        % Jingyuan filtre the raw data and do the hilbert transfer  
         timestamps = 0:3/(length(obj.BullData)-1):3;
-        
         set (obj.HilbertPlotLines(1),'XData',timestamps,'YData',obj.BullData);
-        BullFiltered = filter (obj.bullFilt,obj.BullData); %filter the data between fmin and fmax 
+        BullFiltered = filtfilt (obj.bullFilt,obj.BullData); %filter the data between fmin and fmax 
         set (obj.HilbertPlotLines(2),'XData',timestamps,'YData',BullFiltered);
         BullEnv = abs(hilbert(BullFiltered)); % hilbert transfer
         %set (obj.HilbertPlotLines(2),'XData',timestamps,'YData',obj.BullData);
         obj.result(1) = mean (BullEnv);
         
         set (obj.HilbertPlotLines(3),'XData',timestamps,'YData',obj.HPCData+ 2e-3*0.5);
-        HPCFiltered = filter (obj.HPCFilt,obj.HPCData); %filter the data between fmin and fmax
+        HPCFiltered = filtfilt (obj.HPCFilt,obj.HPCData); %filter the data between fmin and fmax
         set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',HPCFiltered+ 2e-3*0.5);
         HPCEnv = abs( hilbert(HPCFiltered)); % hilbert transfer
         %set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',obj.HPCData+ 2e-3*0.5); 
@@ -482,13 +479,12 @@ classdef BoardPlot < handle
         
 
         set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',obj.PFCxData+ 4e-3*0.5);
-        PFCxFiltered = filter (obj.PFCxFilt,obj.PFCxData); %filter the data between fmin and fmax
+        PFCxFiltered = filtfilt (obj.PFCxFilt,obj.PFCxData); %filter the data between fmin and fmax
         set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',PFCxFiltered+ 4e-3*0.5);
         PFCxEnv = abs( hilbert(PFCxFiltered)); % hilbert transfer
         %set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',obj.PFCxData+ 4e-3*0.5);
         % obj.PFCxData(obj.PFCxData < 100)= 100;
         obj.result=mean(PFCxEnv);
-  
         obj.ratioData = PFCxEnv./HPCEnv;
         obj.result(4)= mean(obj.ratioData);
         end
@@ -591,7 +587,6 @@ classdef BoardPlot < handle
             %samples in a datablock
                 newdata_original=mean([obj.prefactors(1),0;0,obj.prefactors(2)]*... %matrix multiplication for the prefactors
                 datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Channels,:),2);  %the last 2 is a parameter for the mean function
-                newdata_microphone=mean(datablock.Board.ADCs(2,:)); %get the data from the ADC 
                 newdata_math=newdata_original(1,:)-newdata_original(2,:);
                 newdata_sound=-0.5*ones(1,obj.ptperdb);
                                 
@@ -726,11 +721,9 @@ classdef BoardPlot < handle
            
             
             % Scale to mV, rather than V.
-            obj.Amplifiers(obj.StoreChannels,obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1)) = ...
-                newdata*1000; %Injection from newdata to obj.amplifiers
+            obj.Amplifiers(obj.StoreChannels,obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1)) =  newdata*1000; %Injection from newdata to obj.amplifiers
             obj.Math(obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1))=newdata_math*1000;
             obj.SoundFile(obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1))=newdata_sound;
-            obj.MicrophoneFile(obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1))=newdata_microphone;
             if filter_activated==1
                 obj.Math_filtered_display(obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1))=obj.Math_filtered*1000;
             end
