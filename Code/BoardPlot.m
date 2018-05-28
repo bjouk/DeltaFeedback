@@ -66,8 +66,6 @@ classdef BoardPlot < handle
         Math_filtered_display
         coeff_filter
         sound_tone
-        %Microphone data
-        MicrophoneFile
 
         % Jingyuan
         hilbert_filter_order 
