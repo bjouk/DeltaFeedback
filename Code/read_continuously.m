@@ -584,10 +584,6 @@ handles.refresh_count = handles.refresh_count - 1;
 
    
     handles.spectre_nowtime = now*24*3600;
-if (handles.spectre_nowtime >= (handles.spectre_lastsave + 60/frequency(handles.boardUI.Board.SamplingRate)))
-    handles.spectre_lastsave = handles.spectre_nowtime;  %Jingyuan collect all the data in the past 3s 
-    handles.boardUI.Spectre_data_block(handles.datablock);
-end
     
 if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refresh_every ))
     

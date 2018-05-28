@@ -198,7 +198,7 @@ classdef BoardPlot < handle
             
             obj.SleepStageAxes = sleep_stage; %Jingyuan 
             obj.HilbertPlotAxes = hilbert_plot;
-            obj.hilbert_filter_order = 96;
+            obj.hilbert_filter_order = 1024;
             obj.bullchannel = 12;
             obj.coeff_bullfmin = 50;
             obj.coeff_bullfmax = 70;
@@ -210,9 +210,9 @@ classdef BoardPlot < handle
             obj.coeff_PFCxfmax = 4;
             obj.coeff_Spectremax = 100;
             obj.samplingfreq=samplingfreq;
-            obj.bullFilt = fir1(obj.hilbert_filter_order,[obj.coeff_bullfmin obj.coeff_bullfmax]/(samplingfreq/(60*2))); %Changed to fir1 type filter
-            obj.HPCFilt = fir1(obj.hilbert_filter_order*24,[obj.coeff_HPCfmin obj.coeff_HPCfmax]/(samplingfreq/(60*2))); %Changed to fir1 type filter
-            obj.PFCxFilt = fir1(obj.hilbert_filter_order*24,[obj.coeff_PFCxfmin obj.coeff_PFCxfmax]/(samplingfreq/(60*2))); %Changed to fir1 type filter
+            obj.bullFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',obj.coeff_bullfmin,'CutoffFrequency2',obj.coeff_bullfmax,'SampleRate',obj.samplingfreq/60);
+            obj.HPCFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',obj.coeff_HPCfmin,'CutoffFrequency2',obj.coeff_HPCfmax,'SampleRate',obj.samplingfreq/60);           
+            obj.PFCxFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',obj.coeff_PFCxfmin,'CutoffFrequency2',obj.coeff_PFCxfmax,'SampleRate',obj.samplingfreq/60);            
             obj.result = [];
             
             %Setting up the spectrum analysis variables
@@ -447,18 +447,19 @@ classdef BoardPlot < handle
         end
         
         function Bull_filterdesign (obj)
-             obj.bullFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
-                                obj.coeff_bullfmin,'CutoffFrequency2',obj.coeff_bullfmax,'SampleRate',samplingfreq);
+           obj.bullFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
+                                obj.coeff_bullfmin,'CutoffFrequency2',obj.coeff_bullfmax,'SampleRate',obj.samplingfreq/60);
                    
         end
         
         function HPC_filterdesign (obj)
-                        obj.HPCFilt = fir1(obj.hilbert_filter_order,[obj.coeff_HPCfmin obj.coeff_HPCfmin]/(samplingfreq/2)); %Changed to fir1 type filter
+           obj.HPCFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
+                                obj.coeff_HPCfmin,'CutoffFrequency2',obj.coeff_HPCfmax,'SampleRate',obj.samplingfreq/60);
         end
         
         function PFCx_filterdesign(obj)
-             obj.PFCxFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
-                                obj.coeff_PFCxfmin,'CutoffFrequency2',obj.coeff_PFCxfmax,'SampleRate',samplingfreq);
+           obj.PFCxFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
+                                obj.coeff_PFCxfmin,'CutoffFrequency2',obj.coeff_PFCxfmax,'SampleRate',obj.samplingfreq/60);
         end
                 
         function hilbert_process_now(obj)
@@ -466,14 +467,14 @@ classdef BoardPlot < handle
         timestamps = 0:3/(length(obj.BullData)-1):3;
         
         set (obj.HilbertPlotLines(1),'XData',timestamps,'YData',obj.BullData);
-        BullFiltered = filter (obj.bullFilt,1,obj.BullData); %filter the data between fmin and fmax 
+        BullFiltered = filter (obj.bullFilt,obj.BullData); %filter the data between fmin and fmax 
         set (obj.HilbertPlotLines(2),'XData',timestamps,'YData',BullFiltered);
         BullEnv = abs(hilbert(BullFiltered)); % hilbert transfer
         %set (obj.HilbertPlotLines(2),'XData',timestamps,'YData',obj.BullData);
         obj.result(1) = mean (BullEnv);
         
         set (obj.HilbertPlotLines(3),'XData',timestamps,'YData',obj.HPCData+ 2e-3*0.5);
-        HPCFiltered = filter (obj.HPCFilt,1,obj.HPCData); %filter the data between fmin and fmax
+        HPCFiltered = filter (obj.HPCFilt,obj.HPCData); %filter the data between fmin and fmax
         set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',HPCFiltered+ 2e-3*0.5);
         HPCEnv = abs( hilbert(HPCFiltered)); % hilbert transfer
         %set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',obj.HPCData+ 2e-3*0.5); 
@@ -481,7 +482,7 @@ classdef BoardPlot < handle
         
 
         set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',obj.PFCxData+ 4e-3*0.5);
-        PFCxFiltered = filter (obj.PFCxFilt,1,obj.PFCxData); %filter the data between fmin and fmax
+        PFCxFiltered = filter (obj.PFCxFilt,obj.PFCxData); %filter the data between fmin and fmax
         set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',PFCxFiltered+ 4e-3*0.5);
         PFCxEnv = abs( hilbert(PFCxFiltered)); % hilbert transfer
         %set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',obj.PFCxData+ 4e-3*0.5);
