@@ -83,7 +83,7 @@ handles.audio_record = 1;
 handles.arduino=serial('COM200'); %with a impossibly big number to avoid all possible conflict. just to initialise the serial class
 handles.driver = rhd2000.Driver;
 
-handles.spectre_refresh_every = 3; % Jingyuan
+handles.spectre_refresh_every = 2; % Jingyuan
 handles.spectre_lastsave = now*24*3600; % Jingyuan the last time we collect the data in the past 3s; the value renew every 60 points
 handles.spectre_lastcal = now*24*3600; % Jingyuan the last time we calculate the spectre density ; the value renew every 3s
 handles.spectre_counter = 0;  % Jingyuan note relative calculation time of the spectre data
@@ -471,7 +471,7 @@ for i=1:handles.chunk_size
     % Get data from the API.
     handles.datablock.read_next(handles.boardUI.Board);  
     handles.boardUI.process_data_block(handles.datablock,handles.arduino,handles.filter_activated);  
-    
+    handles.boardUI.Spectre_data_block(handles.datablock);
     
     %write to detection matrix in workspace 
     if handles.boardUI.Plot.detected==1       
@@ -584,10 +584,6 @@ handles.refresh_count = handles.refresh_count - 1;
 
    
     handles.spectre_nowtime = now*24*3600;
-if (handles.spectre_nowtime >= (handles.spectre_lastsave + 60/frequency(handles.boardUI.Board.SamplingRate)))
-    handles.spectre_lastsave = handles.spectre_nowtime;  %Jingyuan collect all the data in the past 3s 
-    handles.boardUI.Spectre_data_block(handles.datablock);
-end
     
 if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refresh_every ))
     
