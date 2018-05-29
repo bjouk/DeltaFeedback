@@ -38,7 +38,6 @@ classdef BoardPlot < handle
         ThresholdFile
         
         timer1
-        timer2
         passed
         counter
         counter_detection
@@ -53,9 +52,9 @@ classdef BoardPlot < handle
         nbrdbaft
         nbrptaft
         
-        samplingfreq
+        samplingfreq %Sampling frequency of the Intan Controller
         num_points
-        prefactors
+        prefactors %Prefactors for the substraction of the cortex signals
         
         Timestamps
         
@@ -65,39 +64,27 @@ classdef BoardPlot < handle
         Math_filtered
         Math_filtered_display
         coeff_filter
-        sound_tone
+        sound_tone %Type of sound played during stimulation
 
         % Jingyuan
-        hilbert_filter_order 
+        hilbert_filter_order % Order of the filter used to filter the signal prior to hilbert transform
          
         coeff_Spectremax 
         
-        coeff_bullfmin 
-        coeff_bullfmax 
-        bullchannel 
-        bullpxx
-        bullfreq
-        bullfmin_indice
-        bullfmax_indice
-        bullFilt
+        coeff_bullfmin % Minimal frequency of Gamma oscillations
+        coeff_bullfmax  % Maximal frequency of Gamma oscillations
+        bullchannel %Channel used to get gamma oscillations
+        bullFilt % Filter used to get the gamma signal
         
-        coeff_HPCfmin 
-        coeff_HPCfmax 
-        HPCchannel 
-        HPCpxx
-        HPCfreq
-        HPCfmin_indice
-        HPCfmax_indice
-        HPCFilt
+        coeff_Thetafmin %Minimal frequency for theta oscillations
+        coeff_Thetafmax %Maximal frequency for theta oscillations
+        Thetachannel %Channel used to get the theta signal 
+        ThetaFilt % Filter used to get the theta signal 
         
-        coeff_PFCxfmin 
-        coeff_PFCxfmax 
-        PFCxchannel 
-        PFCxpxx
-        PFCxfreq
-        PFCxfmin_indice
-        PFCxfmax_indice
-        PFCxFilt
+        coeff_Deltafmin %Minimal frequency for delta oscillations
+        coeff_Deltafmax %Maximal frequency for delta oscillations
+        Deltachannel % Channel used for delta oscillations
+        DeltaFilt %Filter used for delta oscillations 
         
         ratioData
         
@@ -115,8 +102,8 @@ classdef BoardPlot < handle
         hline_ratio
                 % Data substracted from Amplifier for spectre plotting Jingyuan
         BullData
-        HPCData
-        PFCxData
+        ThetaData
+        DeltaData
     end
     
     properties (Access = private, Hidden = false)
@@ -197,26 +184,26 @@ classdef BoardPlot < handle
             obj.SleepStageAxes = sleep_stage; %Jingyuan 
             obj.HilbertPlotAxes = hilbert_plot;
             obj.hilbert_filter_order = 332;
-            obj.bullchannel = 12;
+            obj.bullchannel = 12; %Default Bull CHannel is 12
             obj.coeff_bullfmin = 50;
             obj.coeff_bullfmax = 70;
-            obj.HPCchannel = 16;
-            obj.coeff_HPCfmin = 8;
-            obj.coeff_HPCfmax = 12;
-            obj.PFCxchannel = 16;
-            obj.coeff_PFCxfmin = 2;
-            obj.coeff_PFCxfmax = 4;
+            obj.Thetachannel = 16;
+            obj.coeff_Thetafmin = 8;
+            obj.coeff_Thetafmax = 12;
+            obj.Deltachannel = 16;
+            obj.coeff_Deltafmin = 2;
+            obj.coeff_Deltafmax = 4;
             obj.coeff_Spectremax = 100;
             obj.samplingfreq=samplingfreq;
             obj.bullFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',obj.coeff_bullfmin,'CutoffFrequency2',obj.coeff_bullfmax,'SampleRate',obj.samplingfreq/60);
-            obj.HPCFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',obj.coeff_HPCfmin,'CutoffFrequency2',obj.coeff_HPCfmax,'SampleRate',obj.samplingfreq/60);           
-            obj.PFCxFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',obj.coeff_PFCxfmin,'CutoffFrequency2',obj.coeff_PFCxfmax,'SampleRate',obj.samplingfreq/60);            
+            obj.ThetaFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',obj.coeff_Thetafmin,'CutoffFrequency2',obj.coeff_Thetafmax,'SampleRate',obj.samplingfreq/60);           
+            obj.DeltaFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',obj.coeff_Deltafmin,'CutoffFrequency2',obj.coeff_Deltafmax,'SampleRate',obj.samplingfreq/60);            
             obj.result = [];
             
             %Setting up the spectrum analysis variables
             obj.BullData=zeros(1, ceil(obj.samplingfreq/60*3));
-            obj.HPCData=zeros(1, ceil(obj.samplingfreq/60*3));
-            obj.PFCxData=zeros(1, ceil(obj.samplingfreq/60*3));
+            obj.ThetaData=zeros(1, ceil(obj.samplingfreq/60*3));
+            obj.DeltaData=zeros(1, ceil(obj.samplingfreq/60*3));
             
             obj.PhaseSpaceAxes = phase_space; %Jingyuan
             obj.gamma_distributionAxes = gamma_distr;
@@ -449,14 +436,14 @@ classdef BoardPlot < handle
                    
         end
         
-        function HPC_filterdesign (obj)
-           obj.HPCFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
-                                obj.coeff_HPCfmin,'CutoffFrequency2',obj.coeff_HPCfmax,'SampleRate',obj.samplingfreq/60);
+        function Theta_filterdesign (obj)
+           obj.ThetaFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
+                                obj.coeff_Thetafmin,'CutoffFrequency2',obj.coeff_Thetafmax,'SampleRate',obj.samplingfreq/60);
         end
         
-        function PFCx_filterdesign(obj)
-           obj.PFCxFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
-                                obj.coeff_PFCxfmin,'CutoffFrequency2',obj.coeff_PFCxfmax,'SampleRate',obj.samplingfreq/60);
+        function Delta_filterdesign(obj)
+           obj.DeltaFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',...
+                                obj.coeff_Deltafmin,'CutoffFrequency2',obj.coeff_Deltafmax,'SampleRate',obj.samplingfreq/60);
         end
                 
         function hilbert_process_now(obj)
@@ -468,22 +455,22 @@ classdef BoardPlot < handle
         %set (obj.HilbertPlotLines(2),'XData',timestamps,'YData',obj.BullData);
         obj.result(1) = mean (BullEnv);
         
-        set (obj.HilbertPlotLines(3),'XData',timestamps,'YData',obj.HPCData+ 2e-3*0.5);
-        HPCFiltered = filtfilt (obj.HPCFilt,obj.HPCData); %filter the data between fmin and fmax
-        set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',HPCFiltered+ 2e-3*0.5);
-        HPCEnv = abs( hilbert(HPCFiltered)); % hilbert transfer
-        %set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',obj.HPCData+ 2e-3*0.5); 
-        obj.result(2) = mean(HPCEnv);
+        set (obj.HilbertPlotLines(3),'XData',timestamps,'YData',obj.ThetaData+ 2e-3*0.5);
+        ThetaFiltered = filtfilt (obj.ThetaFilt,obj.ThetaData); %filter the data between fmin and fmax
+        set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',ThetaFiltered+ 2e-3*0.5);
+        ThetaEnv = abs( hilbert(ThetaFiltered)); % hilbert transfer
+        %set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',obj.ThetaData+ 2e-3*0.5); 
+        obj.result(2) = mean(ThetaEnv);
         
 
-        set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',obj.PFCxData+ 4e-3*0.5);
-        PFCxFiltered = filtfilt (obj.PFCxFilt,obj.PFCxData); %filter the data between fmin and fmax
-        set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',PFCxFiltered+ 4e-3*0.5);
-        PFCxEnv = abs( hilbert(PFCxFiltered)); % hilbert transfer
-        %set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',obj.PFCxData+ 4e-3*0.5);
-        % obj.PFCxData(obj.PFCxData < 100)= 100;
-        obj.result=mean(PFCxEnv);
-        obj.ratioData = PFCxEnv./HPCEnv;
+        set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',obj.DeltaData+ 4e-3*0.5);
+        DeltaFiltered = filtfilt (obj.DeltaFilt,obj.DeltaData); %filter the data between fmin and fmax
+        set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',DeltaFiltered+ 4e-3*0.5);
+        DeltaEnv = abs( hilbert(DeltaFiltered)); % hilbert transfer
+        %set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',obj.DeltaData+ 4e-3*0.5);
+        % obj.DeltaData(obj.DeltaData < 100)= 100;
+        obj.result=mean(DeltaEnv);
+        obj.ratioData = DeltaEnv./ThetaEnv;
         obj.result(4)= mean(obj.ratioData);
         end
          
@@ -569,8 +556,8 @@ classdef BoardPlot < handle
         
         function obj = Spectre_data_block(obj,datablock)  % Jingyuan Sve the data from Datablock to a new array
             obj.BullData = [obj.BullData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.bullchannel,:))];
-            obj.HPCData = [obj.HPCData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.HPCchannel,:))];
-            obj.PFCxData = [obj.PFCxData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.PFCxchannel,:))];
+            obj.ThetaData = [obj.ThetaData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Thetachannel,:))];
+            obj.DeltaData = [obj.DeltaData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Deltachannel,:))];
         end
         
         function obj = process_data_block(obj, datablock,arduino,filter_activated)
@@ -750,15 +737,15 @@ classdef BoardPlot < handle
         end
         
         function b=sendoutspectrechannel(obj) %Jingyuan
-            b = [obj.bullchannel,obj.HPCchannel,obj.PFCxchannel];
+            b = [obj.bullchannel,obj.Thetachannel,obj.Deltachannel];
         end
         
         function c=sendoutspectrefmin(obj) %Jingyuan
-            c = [obj.coeff_bullfmin,obj.coeff_HPCfmin, obj.coeff_PFCxfmin]; 
+            c = [obj.coeff_bullfmin,obj.coeff_Thetafmin, obj.coeff_Deltafmin]; 
         end
     
         function d=sendoutspectrefmax(obj) %Jingyuan
-            d = [obj.coeff_bullfmax, obj.coeff_HPCfmax,obj.coeff_PFCxfmax]; 
+            d = [obj.coeff_bullfmax, obj.coeff_Thetafmax,obj.coeff_Deltafmax]; 
         end
 
     end

@@ -30,13 +30,13 @@ classdef BoardUI < handle
         bullfmin
         bullfmax
         
-        HPCchannel
-        HPCfmin
-        HPCfmax
+        Thetachannel
+        Thetafmin
+        Thetafmax
         
-        PFCxchannel
-        PFCxfmin
-        PFCxfmax
+        Deltachannel
+        Deltafmin
+        Deltafmax
         
         TheChannels  %Kejian for just one channel
         DataBlock_temp %Kejian
@@ -91,12 +91,12 @@ classdef BoardUI < handle
              obj.Plot.Bull_filterdesign ();        
         end
         
-        function HPC_filterdesign (obj)
-            obj.Plot.HPC_filterdesign();
+        function Theta_filterdesign (obj)
+            obj.Plot.Theta_filterdesign();
         end
         
-        function PFCx_filterdesign (obj)
-            obj.Plot.PFCx_filterdesign();
+        function Delta_filterdesign (obj)
+            obj.Plot.Delta_filterdesign();
         end
         
         function refresh_sleepstage(obj,timestamps,sleepstage)
@@ -207,24 +207,24 @@ classdef BoardUI < handle
              obj.Plot.coeff_bullfmax =obj.bullfmax; 
          end
          
-        function obj = set_HPCchannel(obj) %Jingyuan 
+        function obj = set_Thetachannel(obj) %Jingyuan 
              
-             obj.Plot.HPCchannel=obj.HPCchannel;
+             obj.Plot.Thetachannel=obj.Thetachannel;
         end
         
-         function obj = set_HPCfrequence(obj)%Jingyuan  
-             obj.Plot.coeff_HPCfmin =obj.HPCfmin;
-             obj.Plot.coeff_HPCfmax =obj.HPCfmax; 
+         function obj = set_Thetafrequence(obj)%Jingyuan  
+             obj.Plot.coeff_Thetafmin =obj.Thetafmin;
+             obj.Plot.coeff_Thetafmax =obj.Thetafmax; 
          end
          
-         function obj = set_PFCxchannel(obj) %Jingyuan 
+         function obj = set_Deltachannel(obj) %Jingyuan 
              
-             obj.Plot.PFCxchannel=obj.PFCxchannel;
+             obj.Plot.Deltachannel=obj.Deltachannel;
         end
         
-         function obj = set_PFCxfrequence(obj)%Jingyuan  
-             obj.Plot.coeff_PFCxfmin =obj.PFCxfmin;
-             obj.Plot.coeff_PFCxfmax =obj.PFCxfmax; 
+         function obj = set_Deltafrequence(obj)%Jingyuan  
+             obj.Plot.coeff_Deltafmin =obj.Deltafmin;
+             obj.Plot.coeff_Deltafmax =obj.Deltafmax; 
          end
         
         
@@ -242,22 +242,22 @@ classdef BoardUI < handle
             obj.bullfmax=bullfmax;
         end
        
-        function obj=set_theHPCchannel(obj,HPCchannel) %Jingyuan
-            obj.HPCchannel=HPCchannel;
+        function obj=set_theThetachannel(obj,Thetachannel) %Jingyuan
+            obj.Thetachannel=Thetachannel;
         end
        
-        function obj=set_theHPCfrequence(obj,HPCfmin, HPCfmax) %Jingyuan
-            obj.HPCfmin=HPCfmin;
-            obj.HPCfmax=HPCfmax;
+        function obj=set_theThetafrequence(obj,Thetafmin, Thetafmax) %Jingyuan
+            obj.Thetafmin=Thetafmin;
+            obj.Thetafmax=Thetafmax;
         end
         
-        function obj=set_thePFCxchannel(obj,PFCxchannel) %Jingyuan
-            obj.PFCxchannel=PFCxchannel;
+        function obj=set_theDeltachannel(obj,Deltachannel) %Jingyuan
+            obj.Deltachannel=Deltachannel;
         end
        
-        function obj=set_thePFCxfrequence(obj,PFCxfmin, PFCxfmax) %Jingyuan
-            obj.PFCxfmin=PFCxfmin;
-            obj.PFCxfmax=PFCxfmax;
+        function obj=set_theDeltafrequence(obj,Deltafmin, Deltafmax) %Jingyuan
+            obj.Deltafmin=Deltafmin;
+            obj.Deltafmax=Deltafmax;
         end
         
         function set_thethreshold (obj,gamma_threshold,ratio_threshold)

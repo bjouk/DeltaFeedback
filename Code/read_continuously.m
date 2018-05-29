@@ -1401,7 +1401,7 @@ function edit24_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of edit24 as text
 %        str2double(get(hObject,'String')) returns contents of edit24 as a double
-handles.HPCchannel=str2double(get(hObject,'String'));
+handles.Thetachannel=str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 
@@ -1419,14 +1419,14 @@ end
 
 
 
-function edit25_Callback(hObject, eventdata, handles) % Jingyuan fmin selection for HPC spectre plot
+function edit25_Callback(hObject, eventdata, handles) % Jingyuan fmin selection for Theta spectre plot
 % hObject    handle to edit25 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of edit25 as text
 %        str2double(get(hObject,'String')) returns contents of edit25 as a double
-handles.HPCfmin=str2double(get(hObject,'String'));
+handles.Thetafmin=str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 
@@ -1444,14 +1444,14 @@ end
 
 
 
-function edit26_Callback(hObject, eventdata, handles) % Jingyuan fmax selection for HPC spectre
+function edit26_Callback(hObject, eventdata, handles) % Jingyuan fmax selection for Theta spectre
 % hObject    handle to edit26 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of edit26 as text
 %        str2double(get(hObject,'String')) returns contents of edit26 as a double
-handles.HPCfmax=str2double(get(hObject,'String'));
+handles.Thetafmax=str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 
@@ -1469,15 +1469,15 @@ end
 
 
 % --- Executes on button press in pushbutton15.
-function pushbutton15_Callback(hObject, eventdata, handles) %Jingyuan OK button for all HPC spectre parameters setting
+function pushbutton15_Callback(hObject, eventdata, handles) %Jingyuan OK button for all Theta spectre parameters setting
 % hObject    handle to pushbutton15 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.boardUI.set_theHPCchannel(handles.HPCchannel);  %pass into the boradUI class!
-handles.boardUI.set_HPCchannel();  %valide the channels selection with the original function
-handles.boardUI.set_theHPCfrequence(handles.HPCfmin, handles.HPCfmax);  %pass into the boradUI class!
-handles.boardUI.set_HPCfrequence();  %valide the channels selection with the original function
-handles.boardUI.HPC_filterdesign();
+handles.boardUI.set_theThetachannel(handles.Thetachannel);  %pass into the boradUI class!
+handles.boardUI.set_Thetachannel();  %valide the channels selection with the original function
+handles.boardUI.set_theThetafrequence(handles.Thetafmin, handles.Thetafmax);  %pass into the boradUI class!
+handles.boardUI.set_Thetafrequence();  %valide the channels selection with the original function
+handles.boardUI.Theta_filterdesign();
 guidata(hObject, handles);
 
 
@@ -1489,7 +1489,7 @@ function edit27_Callback(hObject, eventdata, handles) %Jingyuan channel selectio
 
 % Hints: get(hObject,'String') returns contents of edit27 as text
 %        str2double(get(hObject,'String')) returns contents of edit27 as a double
-handles.PFCxchannel=str2double(get(hObject,'String'));
+handles.Deltachannel=str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 
@@ -1507,14 +1507,14 @@ end
 
 
 
-function edit28_Callback(hObject, eventdata, handles) % Jingyuan fmin selection for PFCx
+function edit28_Callback(hObject, eventdata, handles) % Jingyuan fmin selection for Delta
 % hObject    handle to edit28 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of edit28 as text
 %        str2double(get(hObject,'String')) returns contents of edit28 as a double
-handles.PFCxfmin=str2double(get(hObject,'String'));
+handles.Deltafmin=str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 
@@ -1539,7 +1539,7 @@ function edit29_Callback(hObject, eventdata, handles) %Jingyuan fmax selection f
 
 % Hints: get(hObject,'String') returns contents of edit29 as text
 %        str2double(get(hObject,'String')) returns contents of edit29 as a double
-handles.PFCxfmax=str2double(get(hObject,'String'));
+handles.Deltafmax=str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 
@@ -1557,15 +1557,15 @@ end
 
 
 % --- Executes on button press in pushbutton16.
-function pushbutton16_Callback(hObject, eventdata, handles) % Jingyuan OK button for all PFCx spectre parameters setting
+function pushbutton16_Callback(hObject, eventdata, handles) % Jingyuan OK button for all Delta spectre parameters setting
 % hObject    handle to pushbutton16 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.boardUI.set_thePFCxchannel(handles.PFCxchannel);  %pass into the boradUI class!
-handles.boardUI.set_PFCxchannel();  %valide the channels selection with the original function
-handles.boardUI.set_thePFCxfrequence(handles.PFCxfmin, handles.PFCxfmax);  %pass into the boradUI class!
-handles.boardUI.set_PFCxfrequence();  %valide the channels selection with the original function
-handles.boardUI.PFCx_filterdesign();
+handles.boardUI.set_theDeltachannel(handles.Deltachannel);  %pass into the boradUI class!
+handles.boardUI.set_Deltachannel();  %valide the channels selection with the original function
+handles.boardUI.set_theDeltafrequence(handles.Deltafmin, handles.Deltafmax);  %pass into the boradUI class!
+handles.boardUI.set_Deltafrequence();  %valide the channels selection with the original function
+handles.boardUI.Delta_filterdesign();
 guidata(hObject, handles);
 
 
