@@ -264,10 +264,10 @@ classdef BoardUI < handle
             obj.Plot.set_thethreshold_now(gamma_threshold,ratio_threshold);
         end
         function obj=setChannelsSpectre (obj, file)
-            paramsArray=csvread(file,1,0);
-            obj.Plot.bullchannel=paramsArray(1,2);
-            obj.Plot.Deltachannel=paramsArray(2,2);
-            obj.Plot.Thetachannel=paramsArray(3,2);
+            paramsArray=readtable(file,'Delimiter',';');
+            obj.Plot.bullchannel=paramsArray{1,2};
+            obj.Plot.Deltachannel=paramsArray{2,2};
+            obj.Plot.Thetachannel=paramsArray{3,2};
             
         end
     end

@@ -83,7 +83,7 @@ handles.audio_record = 1;
 handles.arduino=serial('COM200'); %with a impossibly big number to avoid all possible conflict. just to initialise the serial class
 handles.driver = rhd2000.Driver;
 
-handles.spectre_refresh_every = 2; % Jingyuan
+handles.spectre_refresh_every = 3; % Jingyuan
 handles.spectre_lastsave = now*24*3600; % Jingyuan the last time we collect the data in the past 3s; the value renew every 60 points
 handles.spectre_lastcal = now*24*3600; % Jingyuan the last time we calculate the spectre density ; the value renew every 3s
 handles.spectre_counter = 0;  % Jingyuan note relative calculation time of the spectre data
@@ -1655,9 +1655,9 @@ function loadChannel_Callback(hObject, eventdata, handles)
 [filename1,filepath1]=uigetfile({'*.*','All Files'},'Select Data File 1');
 file=strcat(filepath1,filename1);
 handles.boardUI.setChannelsSpectre(file);
-set(handles.bullChannelText,'Text',handles.boardUI.Plot.bullchannel);
-set(handles.thetaChannelText,'Text',handles.boardUI.Plot.thetachannel);
-set(handles.deltaChannelText,'Text',handles.boardUI.Plot.deltachannel);
+set(handles.bullChannelText,'String',handles.boardUI.Plot.bullchannel);
+set(handles.thetaChannelText,'String',handles.boardUI.Plot.Thetachannel);
+set(handles.deltaChannelText,'String',handles.boardUI.Plot.Deltachannel);
 
 
 
