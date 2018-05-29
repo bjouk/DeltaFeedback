@@ -260,11 +260,16 @@ classdef BoardUI < handle
             obj.Deltafmax=Deltafmax;
         end
         
-        function set_thethreshold (obj,gamma_threshold,ratio_threshold)
+        function obj=set_thethreshold (obj,gamma_threshold,ratio_threshold)
             obj.Plot.set_thethreshold_now(gamma_threshold,ratio_threshold);
         end
+        function obj=setChannelsSpectre (obj, file)
+            paramsArray=csvread(file,1,0);
+            obj.Plot.bullchannel=paramsArray(1,2);
+            obj.Plot.Deltachannel=paramsArray(2,2);
+            obj.Plot.Thetachannel=paramsArray(3,2);
             
-       
+        end
     end
     
     

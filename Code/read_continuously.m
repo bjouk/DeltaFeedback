@@ -47,7 +47,7 @@ function varargout = read_continuously(varargin)
 
 % Edit the above text to modify the response to help read_continuously
 
-% Last Modified by GUIDE v2.5 24-May-2018 17:11:35
+% Last Modified by GUIDE v2.5 29-May-2018 14:06:02
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1645,3 +1645,86 @@ function Gaussian_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles.boardUI.Plot.sound_tone=1;
 % Hint: get(hObject,'Value') returns toggle state of Gaussian
+
+
+% --- Executes on button press in loadChannel.
+function loadChannel_Callback(hObject, eventdata, handles)
+% hObject    handle to loadChannel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[filename1,filepath1]=uigetfile({'*.*','All Files'},'Select Data File 1');
+file=strcat(filepath1,filename1);
+handles.boardUI.setChannelsSpectre(file);
+set(handles.bullChannelText,'Text',handles.boardUI.Plot.bullchannel);
+set(handles.thetaChannelText,'Text',handles.boardUI.Plot.thetachannel);
+set(handles.deltaChannelText,'Text',handles.boardUI.Plot.deltachannel);
+
+
+
+
+function bullChannelText_Callback(hObject, eventdata, handles)
+% hObject    handle to bullChannelText (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of bullChannelText as text
+%        str2double(get(hObject,'String')) returns contents of bullChannelText as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function bullChannelText_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to bullChannelText (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function thetaChannelText_Callback(hObject, eventdata, handles)
+% hObject    handle to thetaChannelText (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of thetaChannelText as text
+%        str2double(get(hObject,'String')) returns contents of thetaChannelText as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function thetaChannelText_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to thetaChannelText (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function deltaChannelText_Callback(hObject, eventdata, handles)
+% hObject    handle to deltaChannelText (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of deltaChannelText as text
+%        str2double(get(hObject,'String')) returns contents of deltaChannelText as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function deltaChannelText_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to deltaChannelText (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

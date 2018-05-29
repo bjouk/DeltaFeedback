@@ -425,7 +425,6 @@ classdef BoardPlot < handle
             indices=indices(obj.num_points-obj.nbrptbf-obj.nbrptaft:end);
     % myAmplifiers=myAmplifiers(:,obj.num_points-obj.nbrptaft-obj.nbrptaft);
     % mycell=num2cell(obj.Amplifiers(:,indices), 2);
-            
             mycell=[num2cell(obj.Amplifiers(:,indices),2);num2cell(obj.Math(:,indices),2);num2cell(obj.SoundFile(:,indices),2);num2cell(obj.ThresholdFile(:,indices),2);num2cell(obj.Math_filtered_display(:,indices),2)];
             set(obj.SnapshotLines, {'YData'},mycell);        
         end
