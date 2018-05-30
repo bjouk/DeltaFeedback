@@ -184,15 +184,15 @@ classdef BoardPlot < handle
             obj.SleepStageAxes = sleep_stage; %Jingyuan 
             obj.HilbertPlotAxes = hilbert_plot;
             obj.hilbert_filter_order = 332;
-            obj.bullchannel = 12; %Default Bull CHannel is 12
+            obj.bullchannel = 1; %Default Bull CHannel is 1
             obj.coeff_bullfmin = 50;
             obj.coeff_bullfmax = 70;
-            obj.Thetachannel = 16;
-            obj.coeff_Thetafmin = 8;
+            obj.Thetachannel = 1;
+            obj.coeff_Thetafmin = 6;
             obj.coeff_Thetafmax = 12;
-            obj.Deltachannel = 16;
+            obj.Deltachannel = 1;
             obj.coeff_Deltafmin = 2;
-            obj.coeff_Deltafmax = 4;
+            obj.coeff_Deltafmax = 5;
             obj.coeff_Spectremax = 100;
             obj.samplingfreq=samplingfreq;
             obj.bullFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',obj.coeff_bullfmin,'CutoffFrequency2',obj.coeff_bullfmax,'SampleRate',obj.samplingfreq/60);
@@ -466,7 +466,6 @@ classdef BoardPlot < handle
         DeltaFiltered = filtfilt (obj.DeltaFilt,obj.DeltaData); %filter the data between fmin and fmax
         set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',DeltaFiltered+ 4e-3*0.5);
         DeltaEnv = abs( hilbert(DeltaFiltered)); % hilbert transfer
-        %set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',obj.DeltaData+ 4e-3*0.5);
         % obj.DeltaData(obj.DeltaData < 100)= 100;
         obj.result=mean(DeltaEnv);
         obj.ratioData = DeltaEnv./ThetaEnv;
@@ -554,9 +553,9 @@ classdef BoardPlot < handle
         end
         
         function obj = Spectre_data_block(obj,datablock)  % Jingyuan Sve the data from Datablock to a new array
-            obj.BullData = [obj.BullData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.bullchannel,:))];
-            obj.ThetaData = [obj.ThetaData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Thetachannel,:))];
-            obj.DeltaData = [obj.DeltaData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Deltachannel,:))];
+            obj.BullData = [obj.BullData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.bullchannel,:))*1000];
+            obj.ThetaData = [obj.ThetaData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Thetachannel,:))*1000];
+            obj.DeltaData = [obj.DeltaData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Deltachannel,:))*1000];
         end
         
         function obj = process_data_block(obj, datablock,arduino,filter_activated)

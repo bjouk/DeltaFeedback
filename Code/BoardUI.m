@@ -165,7 +165,7 @@ classdef BoardUI < handle
             obj.Plot.process_data_block(datablock,arduino,filter_activated);
         end
         
-        function obj = Spectre_data_block(obj,datablock)
+        function obj = Spectre_data_block(obj,datablock)%Processes the datablock for spectrum analysis 
             obj.Plot.Spectre_data_block(datablock);
         end
         
@@ -265,6 +265,8 @@ classdef BoardUI < handle
         end
         function obj=setChannelsSpectre (obj, file)
             paramsArray=readtable(file,'Delimiter',';');
+            obj.set_thechannels([paramsArray{4,2} paramsArray{5,2}]);
+            obj.set_channels();
             obj.Plot.bullchannel=paramsArray{1,2};
             obj.Plot.Deltachannel=paramsArray{2,2};
             obj.Plot.Thetachannel=paramsArray{3,2};
