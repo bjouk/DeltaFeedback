@@ -208,6 +208,7 @@ classdef BoardPlot < handle
             obj.countermax=4/(1/samplingfreq)/60;  %default refractory time for fire is 4
             obj.countermax_detection=0.3/(1/samplingfreq)/60; %refractory time for detection is 0.3s
             
+
             % We'll display num_channels channels x 2040 time stamps 
             % (# of time stamps should be divisible by 60, as each data 
             % block contains 60 time stamps)
@@ -554,17 +555,8 @@ classdef BoardPlot < handle
                 newdata_sound=-0.5*ones(1,obj.ptperdb);
                                 
                 if filter_activated==1
-                    obj.Math_buffer_to_filter(1:end-1)=obj.Math_buffer_to_filter(2:end);
-                    obj.Math_buffer_to_filter(end)=newdata_math;
-                    a = obj.coeff_filter(1,:);
-                    b = obj.coeff_filter(2,:);
-                    
-                    newdata_filt = dot(fliplr(b), obj.Math_buffer_to_filter);
-                    newdata_filt = newdata_filt - dot(fliplr(a(2:end)), obj.Math_buffer_filtered);
-                    obj.Math_filtered = newdata_filt / a(1);
-                    
-                    obj.Math_buffer_filtered(1:end-1)=obj.Math_buffer_filtered(2:end);
-                    obj.Math_buffer_filtered(end)= obj.Math_filtered;
+                    obj.Math_buffer_to_filter=[obj.Math_buffer_to_filter(2:end) newdata_math];
+                    obj.Math_filtered = filtfilt(obj.DeltaFilt ,obj.Math_buffer_to_filter);
                 end
                     
                                
