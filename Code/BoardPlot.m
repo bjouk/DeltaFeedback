@@ -467,8 +467,8 @@ classdef BoardPlot < handle
         set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',DeltaFiltered+ 4e-3*0.5);
         DeltaEnv = abs( hilbert(DeltaFiltered)); % hilbert transfer
         % obj.DeltaData(obj.DeltaData < 100)= 100;
-        obj.result=mean(DeltaEnv);
-        obj.ratioData = DeltaEnv./ThetaEnv;
+        obj.result(3)=mean(DeltaEnv);
+        obj.ratioData = ThetaEnv./DeltaEnv;
         obj.result(4)= mean(obj.ratioData);
         end
          

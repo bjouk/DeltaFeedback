@@ -591,8 +591,8 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
     handles.boardUI.hilbert_process(); 
     
     set (handles.text59,'string',num2str(handles.boardUI.Plot.result(1))); % Show on screnn
-    set (handles.text60,'string',num2str(handles.boardUI.Plot.result(2)));
-    set (handles.text61,'string',num2str(handles.boardUI.Plot.result(3)));
+    set (handles.text60,'string',num2str(handles.boardUI.Plot.result(2),'%E'));
+    set (handles.text61,'string',num2str(handles.boardUI.Plot.result(3),'%E'));
     set (handles.text62,'string',num2str(handles.boardUI.Plot.result(4)));
 
 
