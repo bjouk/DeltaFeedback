@@ -53,7 +53,7 @@ classdef BoardPlot < handle
         nbrptaft
         
         samplingfreq %Sampling frequency of the Intan Controller
-        num_points
+        num_points %Number of points to display
         prefactors %Prefactors for the substraction of the cortex signals
         
         Timestamps
@@ -61,7 +61,7 @@ classdef BoardPlot < handle
         Time_real
         Math_buffer_to_filter % a public property, cause needs to be created when click the filter "Apply"
         Math_buffer_filtered % buffer for IIR filter
-        Math_filtered
+        Math_filtered %Stores the output of the filtering of the difference
         Math_filtered_display
         coeff_filter
         sound_tone %Type of sound played during stimulation
@@ -100,18 +100,14 @@ classdef BoardPlot < handle
         hline_phase
         vline_gamma
         hline_ratio
-                % Data substracted from Amplifier for spectre plotting Jingyuan
+        % Data extracted from Amplifier for spectre plotting Jingyuan
         BullData
         ThetaData
         DeltaData
     end
     
     properties (Access = private, Hidden = false)
-        % Timestamps for plotting
-%         Timestamps
-%         
-%         Time_real
-%         
+
         % Amplifier data for plotting        
         Amplifiers
         
@@ -170,10 +166,6 @@ classdef BoardPlot < handle
         
         function obj = BoardPlot(data_plot, hilbert_plot,sleep_stage, phase_space,gamma_distr,ratio_distr,...
                                 snapshot, num_channels, samplingfreq)
-        % Constructor.
-        %
-        % Example:
-        %     boardPlot = BoardPlot(gca, 32);
             obj.passed=0;
             obj.detec_seuil=100;
             obj.fired=0;
@@ -216,18 +208,6 @@ classdef BoardPlot < handle
             obj.countermax=4/(1/samplingfreq)/60;  %default refractory time for fire is 4
             obj.countermax_detection=0.3/(1/samplingfreq)/60; %refractory time for detection is 0.3s
             
-            
-            
-            
-%             obj.timer1 = timer(...
-%                             'ExecutionMode', 'fixedRate', ...       % Run timer repeatedly
-%                             'Period', 1, ...
-%                             'TimerFcn', {@set_wait_mode,obj}); % Specify callback
-%             obj.timer2 = timer(...
-%                             'ExecutionMode', 'fixedRate', ...       % Run timer repeatedly
-%                             'Period', 10, ...
-%                             'TimerFcn', {@set_wait_mode,obj}); % Specify callback                      
-
             % We'll display num_channels channels x 2040 time stamps 
             % (# of time stamps should be divisible by 60, as each data 
             % block contains 60 time stamps)
@@ -734,16 +714,10 @@ classdef BoardPlot < handle
             a = obj.Channels;
         end
         
-        function b=sendoutspectrechannel(obj) %Jingyuan
-            b = [obj.bullchannel,obj.Thetachannel,obj.Deltachannel];
-        end
-        
-        function c=sendoutspectrefmin(obj) %Jingyuan
-            c = [obj.coeff_bullfmin,obj.coeff_Thetafmin, obj.coeff_Deltafmin]; 
-        end
-    
-        function d=sendoutspectrefmax(obj) %Jingyuan
-            d = [obj.coeff_bullfmax, obj.coeff_Thetafmax,obj.coeff_Deltafmax]; 
+        function obj=testArduino(obj)
+            if strcmp(arduino.Status,'open')
+                fwrite(arduino,1*10+obj.sound_tone); %the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
+            end
         end
 
     end

@@ -195,75 +195,15 @@ classdef BoardUI < handle
              
              obj.Plot.Channels=obj.TheChannels; %Kejian
         end
-        
-        
-        function obj = set_bullchannel(obj) %Jingyuan 
-             
-             obj.Plot.bullchannel=obj.bullchannel;
-        end
-        
-         function obj = set_bullfrequence(obj)%Jingyuan  
-             obj.Plot.coeff_bullfmin =obj.bullfmin;
-             obj.Plot.coeff_bullfmax =obj.bullfmax; 
-         end
-         
-        function obj = set_Thetachannel(obj) %Jingyuan 
-             
-             obj.Plot.Thetachannel=obj.Thetachannel;
-        end
-        
-         function obj = set_Thetafrequence(obj)%Jingyuan  
-             obj.Plot.coeff_Thetafmin =obj.Thetafmin;
-             obj.Plot.coeff_Thetafmax =obj.Thetafmax; 
-         end
-         
-         function obj = set_Deltachannel(obj) %Jingyuan 
-             
-             obj.Plot.Deltachannel=obj.Deltachannel;
-        end
-        
-         function obj = set_Deltafrequence(obj)%Jingyuan  
-             obj.Plot.coeff_Deltafmin =obj.Deltafmin;
-             obj.Plot.coeff_Deltafmax =obj.Deltafmax; 
-         end
-        
-        
+  
         function obj=set_thechannels(obj,TheChannels) %Kejian
             obj.TheChannels=TheChannels;
         end
-        
-        
-        function obj=set_thebullchannel(obj,bullchannel) %Jingyuan
-            obj.bullchannel=bullchannel;
-        end
-       
-        function obj=set_thebullfrequence(obj,bullfmin, bullfmax) %Jingyuan
-            obj.bullfmin=bullfmin;
-            obj.bullfmax=bullfmax;
-        end
-       
-        function obj=set_theThetachannel(obj,Thetachannel) %Jingyuan
-            obj.Thetachannel=Thetachannel;
-        end
-       
-        function obj=set_theThetafrequence(obj,Thetafmin, Thetafmax) %Jingyuan
-            obj.Thetafmin=Thetafmin;
-            obj.Thetafmax=Thetafmax;
-        end
-        
-        function obj=set_theDeltachannel(obj,Deltachannel) %Jingyuan
-            obj.Deltachannel=Deltachannel;
-        end
-       
-        function obj=set_theDeltafrequence(obj,Deltafmin, Deltafmax) %Jingyuan
-            obj.Deltafmin=Deltafmin;
-            obj.Deltafmax=Deltafmax;
-        end
-        
+
         function obj=set_thethreshold (obj,gamma_threshold,ratio_threshold)
             obj.Plot.set_thethreshold_now(gamma_threshold,ratio_threshold);
         end
-        function obj=setChannelsSpectre (obj, file)
+        function obj=setChannelsSpectre (obj, file) %Get the mouse channels from a .csv file and use the data 
             paramsArray=readtable(file,'Delimiter',';');
             obj.set_thechannels([paramsArray{4,2} paramsArray{5,2}]);
             obj.set_channels();

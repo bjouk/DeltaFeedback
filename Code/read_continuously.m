@@ -47,7 +47,7 @@ function varargout = read_continuously(varargin)
 
 % Edit the above text to modify the response to help read_continuously
 
-% Last Modified by GUIDE v2.5 29-May-2018 14:06:02
+% Last Modified by GUIDE v2.5 30-May-2018 16:45:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1150,21 +1150,21 @@ function checkbox9_Callback(hObject, eventdata, handles)
 
 
 
-function edit16_Callback(hObject, eventdata, handles)
-% hObject    handle to edit16 (see GCBO)
+function arduinoCOM_Callback(hObject, eventdata, handles)
+% hObject    handle to arduinoCOM (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit16 as text
-%        str2double(get(hObject,'String')) returns contents of edit16 as a double
+% Hints: get(hObject,'String') returns contents of arduinoCOM as text
+%        str2double(get(hObject,'String')) returns contents of arduinoCOM as a double
 handles.COM_No=get(hObject,'String');
 guidata(hObject,handles);
 
 
 
 % --- Executes during object creation, after setting all properties.
-function edit16_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit16 (see GCBO)
+function arduinoCOM_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to arduinoCOM (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -1175,9 +1175,9 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in pushbutton11.
-function pushbutton11_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton11 (see GCBO)
+% --- Executes on button press in arduinoOk.
+function arduinoOk_Callback(hObject, eventdata, handles)
+% hObject    handle to arduinoOk (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 name=['COM',handles.COM_No];
@@ -1309,20 +1309,20 @@ handles.boardUI.Plot.set_visible6(1);
 guidata(hObject,handles);
 
 
-function edit30_Callback(hObject, eventdata, handles)
-% hObject    handle to edit30 (see GCBO)
+function gammaThreshold_Callback(hObject, eventdata, handles)
+% hObject    handle to gammaThreshold (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit30 as text
-%        str2double(get(hObject,'String')) returns contents of edit30 as a double
+% Hints: get(hObject,'String') returns contents of gammaThreshold as text
+%        str2double(get(hObject,'String')) returns contents of gammaThreshold as a double
 handles.gamma_threshold=(str2double(get(hObject,'String')));
 guidata(hObject, handles);
 
 
 % --- Executes during object creation, after setting all properties.
-function edit30_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit30 (see GCBO)
+function gammaThreshold_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to gammaThreshold (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -1334,20 +1334,20 @@ end
 
 
 
-function edit31_Callback(hObject, eventdata, handles)
-% hObject    handle to edit31 (see GCBO)
+function thetaDeltaThreshold_Callback(hObject, eventdata, handles)
+% hObject    handle to thetaDeltaThreshold (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit31 as text
-%        str2double(get(hObject,'String')) returns contents of edit31 as a double
+% Hints: get(hObject,'String') returns contents of thetaDeltaThreshold as text
+%        str2double(get(hObject,'String')) returns contents of thetaDeltaThreshold as a double
 handles.ratio_threshold=(str2double(get(hObject,'String')));
 guidata(hObject, handles);
 
 
 % --- Executes during object creation, after setting all properties.
-function edit31_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit31 (see GCBO)
+function thetaDeltaThreshold_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to thetaDeltaThreshold (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -1470,3 +1470,11 @@ function deltaChannelText_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in testArduino.
+function testArduino_Callback(hObject, eventdata, handles)
+% hObject    handle to testArduino (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.boardUI.Plot.testArduino();
