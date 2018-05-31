@@ -86,6 +86,7 @@ classdef BoardPlot < handle
         Deltachannel % Channel used for delta oscillations
         DeltaFilt %Filter used for delta oscillations 
         
+        DeltaFiltPFC %Delta filter for PFC detection
         ratioData
         
         result
@@ -223,6 +224,7 @@ classdef BoardPlot < handle
             obj.Math_buffer_to_filter=[0];
             obj.Math_buffer_filtered=[0];
             obj.Math_filtered=0;
+            obj.DeltaFiltPFC=fir1(2,[2 5]/(samplingfreq/(2*60)));
             
             obj.Amplifiers = zeros(num_channels, obj.num_points); %pas de voies inutiles
             obj.Math = zeros(1, obj.num_points);
@@ -556,7 +558,8 @@ classdef BoardPlot < handle
                                 
                 if filter_activated==1
                     obj.Math_buffer_to_filter=[obj.Math_buffer_to_filter(2:end) newdata_math];
-                    obj.Math_filtered = filtfilt(obj.DeltaFilt ,obj.Math_buffer_to_filter);
+                    filtered = filtfilt(obj.DeltaFiltPFC,1 ,obj.Math_buffer_to_filter);
+                    obj.Math_filtered=filtered(end);
                 end
                     
                                
