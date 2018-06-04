@@ -63,7 +63,6 @@ classdef BoardPlot < handle
         Math_buffer_filtered % buffer for IIR filter
         Math_filtered %Stores the output of the filtering of the difference
         Math_filtered_display
-        coeff_filter
         sound_tone %Type of sound played during stimulation
 
         % Jingyuan
@@ -86,6 +85,7 @@ classdef BoardPlot < handle
         Deltachannel % Channel used for delta oscillations
         DeltaFilt %Filter used for delta oscillations 
         
+        DeltaFiltPFC %Delta filter for PFC detection
         ratioData
         
         result
@@ -208,6 +208,7 @@ classdef BoardPlot < handle
             obj.countermax=4/(1/samplingfreq)/60;  %default refractory time for fire is 4
             obj.countermax_detection=0.3/(1/samplingfreq)/60; %refractory time for detection is 0.3s
             
+
             % We'll display num_channels channels x 2040 time stamps 
             % (# of time stamps should be divisible by 60, as each data 
             % block contains 60 time stamps)
@@ -222,6 +223,7 @@ classdef BoardPlot < handle
             obj.Math_buffer_to_filter=[0];
             obj.Math_buffer_filtered=[0];
             obj.Math_filtered=0;
+            obj.DeltaFiltPFC=fir1(4,[2 5]/(samplingfreq/(2*60)));
             
             obj.Amplifiers = zeros(num_channels, obj.num_points); %pas de voies inutiles
             obj.Math = zeros(1, obj.num_points);
@@ -515,17 +517,6 @@ classdef BoardPlot < handle
             end
         end
         
-        function obj = reset_buffer_to_filter(obj, n_points)
-            %methods to reset the buffer used in the filters
-            obj.Math_buffer_to_filter = zeros(1, n_points);
-        end
-        function obj = reset_buffer_filtered(obj, n_points)
-            obj.Math_buffer_filtered = zeros(1, n_points);
-        end
-        function obj = set_coeff_filter(obj,coeff)
-            obj.coeff_filter = coeff;
-        end
-        
         % Jingyuan
         function obj = set_coeff_spectrefreq(obj,spectrefmin,spectrefmax)
             obj.coeff_spectrefmin = spectrefmin;
@@ -554,17 +545,9 @@ classdef BoardPlot < handle
                 newdata_sound=-0.5*ones(1,obj.ptperdb);
                                 
                 if filter_activated==1
-                    obj.Math_buffer_to_filter(1:end-1)=obj.Math_buffer_to_filter(2:end);
-                    obj.Math_buffer_to_filter(end)=newdata_math;
-                    a = obj.coeff_filter(1,:);
-                    b = obj.coeff_filter(2,:);
-                    
-                    newdata_filt = dot(fliplr(b), obj.Math_buffer_to_filter);
-                    newdata_filt = newdata_filt - dot(fliplr(a(2:end)), obj.Math_buffer_filtered);
-                    obj.Math_filtered = newdata_filt / a(1);
-                    
-                    obj.Math_buffer_filtered(1:end-1)=obj.Math_buffer_filtered(2:end);
-                    obj.Math_buffer_filtered(end)= obj.Math_filtered;
+                    obj.Math_buffer_to_filter=[obj.Math_buffer_to_filter(2:end) newdata_math];
+                    filtered = filtfilt(obj.DeltaFiltPFC,1 ,obj.Math_buffer_to_filter);
+                    obj.Math_filtered=filtered(end);
                 end
                     
                                
@@ -719,6 +702,15 @@ classdef BoardPlot < handle
                 fwrite(arduino,1*10+obj.sound_tone); %the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
             end
         end
+        function DeltaPFC_filterdesign(obj,fmin,fmax)
+                       obj.DeltaFiltPFC=fir1(12,[fmin fmax]/(obj.samplingfreq/(2*60)));
+        end
+        function obj=triggerArduino(obj, arduino)
+            if strcmp(arduino.Status,'open')
+                 fwrite(arduino,60); %Mode 6=> trigger video
+            end
+        end
+            
 
     end
     
