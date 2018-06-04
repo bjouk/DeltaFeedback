@@ -24,6 +24,8 @@ void setup() {
   digitalWrite(24, LOW);
   pinMode(22,OUTPUT);    // Tone Frequency #1 digitalIO4
   digitalWrite(22, LOW);
+  pinMode(40,OUTPUT);    // Trigger video
+  digitalWrite(40, LOW);
   //------------------------------
   // send Tone (Intan Device)
   //------------------------  
@@ -47,7 +49,7 @@ void loop(){
   // ---------------------------------------------------------------------------
   if (Serial.available() >0){
     order=Serial.read();
-    if(order>=10 && order<50){
+    if(order>=10 && order<70){
       sound=order%10;// sound is the unit of the serial reading
       order=order/10;// order is the decade of the serial reading
     }
@@ -115,6 +117,14 @@ void loop(){
     digitalWrite(29,HIGH);    //Intan event      
     delay(10);
     digitalWrite(29,LOW);}
+    //--------------------------------------------------------------------------
+     //--------------------------------------------------------------------------
+    // mode 6: trigger video
+    //--------------------------------------------------------------------------
+    if (order==6){
+    digitalWrite(40,HIGH);    //Intan event      
+    delay(10);
+    }
     //--------------------------------------------------------------------------
     
     
