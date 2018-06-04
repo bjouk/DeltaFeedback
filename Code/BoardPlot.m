@@ -104,6 +104,8 @@ classdef BoardPlot < handle
         BullData
         ThetaData
         DeltaData
+        
+        
     end
     
     properties (Access = private, Hidden = false)
@@ -220,10 +222,10 @@ classdef BoardPlot < handle
             obj.counter=0;
             obj.counter_detection=0;
             
-            obj.Math_buffer_to_filter=[0];
-            obj.Math_buffer_filtered=[0];
+            obj.Math_buffer_to_filter=zeros(1, obj.num_points);
+            obj.Math_buffer_filtered=zeros(1, obj.num_points);
             obj.Math_filtered=0;
-            obj.DeltaFiltPFC=fir1(4,[2 5]/(samplingfreq/(2*60)));
+            obj.DeltaFiltPFC=butter(200,[2 5]/(samplingfreq/(2*60)));
             
             obj.Amplifiers = zeros(num_channels, obj.num_points); %pas de voies inutiles
             obj.Math = zeros(1, obj.num_points);
@@ -543,10 +545,10 @@ classdef BoardPlot < handle
                 datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Channels,:),2);  %the last 2 is a parameter for the mean function
                 newdata_math=newdata_original(1,:)-newdata_original(2,:);
                 newdata_sound=-0.5*ones(1,obj.ptperdb);
-                                
+                obj.Math_buffer_to_filter=[obj.Math_buffer_to_filter(2:end) newdata_math];
                 if filter_activated==1
-                    obj.Math_buffer_to_filter=[obj.Math_buffer_to_filter(2:end) newdata_math];
-                    filtered = filtfilt(obj.DeltaFiltPFC,1 ,obj.Math_buffer_to_filter);
+                    filtered = filtfilt(obj.DeltaFiltPFC(1),obj.DeltaFiltPFC(2) ,obj.Math_buffer_to_filter);
+                    %filtered=var(filtered);
                     obj.Math_filtered=filtered(end);
                 end
                     
