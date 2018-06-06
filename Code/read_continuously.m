@@ -1294,6 +1294,7 @@ function pushbutton_apply_filter_Callback(hObject, eventdata, handles)
 filterF_fmin=handles.filter_fmin;  %default value in frequency
 filterF_fmax=handles.filter_fmax;    %default value in frequency
 filterF_order=handles.filter_order;    %default value in frequency
+handles.filter_activated=1;
 handles.boardUI.Plot.DeltaPFC_filterdesign(filterF_fmin,filterF_fmax);
 set(handles.checkbox11,'Enable','on');
 set(handles.checkbox11,'Value',1);
