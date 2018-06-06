@@ -278,11 +278,11 @@ handles.datablock = rhd2000.datablock.DataBlock(handles.boardUI.Board);
 
 % Tell the board to run continuously
 handles.boardUI.Board.run_continuously();
+handles.boardUI.Plot.triggerArduino(handles.arduino);%Trigger video recording
 %handles.boardUI.Board.DigitalOutputs=zeros(1,16);
 handles.last_status=0;
 
 handles.boardUI.set_channels_chips();
-
 handles.detections=0;
 handles.fires=0;
 handles.last_db_digin=zeros(1,60);
@@ -1294,14 +1294,8 @@ function pushbutton_apply_filter_Callback(hObject, eventdata, handles)
 filterF_fmin=handles.filter_fmin;  %default value in frequency
 filterF_fmax=handles.filter_fmax;    %default value in frequency
 filterF_order=handles.filter_order;    %default value in frequency
-SR=frequency(handles.boardUI.Board.SamplingRate)/60; %SR=Sampling Rate, 60 is nomber of samples of a datablock. The filter is not fot the raw data, which is typical 20KHz, but for signal consists of the average values of every datablock. (see that in process_datablock in BoradPlot)
-
-[b,a] = butter(filterF_order, [filterF_fmin filterF_fmax] / SR); 
-handles.boardUI.Plot.set_coeff_filter([a; b]);
-handles.boardUI.Plot.reset_buffer_to_filter(length(a));
-handles.boardUI.Plot.reset_buffer_filtered(length(a) - 1);
 handles.filter_activated=1;
-
+handles.boardUI.Plot.DeltaPFC_filterdesign(filterF_fmin,filterF_fmax);
 set(handles.checkbox11,'Enable','on');
 set(handles.checkbox11,'Value',1);
 handles.boardUI.Plot.set_visible6(1);
