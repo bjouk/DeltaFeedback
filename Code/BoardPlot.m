@@ -109,6 +109,11 @@ classdef BoardPlot < handle
         %Stimulate during NREM Sleep
         stimulateDuringNREM
         
+        stimulateDuringREM
+        
+        stimulateDuringWake
+        stimulateAtRandom
+        
         
     end
     
@@ -248,6 +253,9 @@ classdef BoardPlot < handle
             obj.nbrptaft=ceil(obj.durationaft*obj.ptperdb/obj.durationdb);
             
             obj.stimulateDuringNREM=false;
+            obj.stimulateDuringREM=false;
+            obj.stimulateDuringWake=false;
+            obj.stimulateAtRandom=false;
             
             
             % Channels are offset, so they're not all on top of each other
@@ -578,8 +586,28 @@ classdef BoardPlot < handle
                     obj.Math_filtered=filtered(end);
                 end
                     
-                               
-                if (obj.detec_status==1 & ~obj.stimulateDuringNREM) | (obj.SleepState==2 & obj.stimulateDuringNREM &  obj.detec_status==1) % means the user wants to detect the pic
+                if(obj.stimulateAtRandom & obj.detec_status==1) %stimulate at random
+                    p=0.0001;
+                    if (obj.counter_detection>obj.countermax_detection)
+                        if strcmp(arduino.Status,'open')
+                                    fwrite(arduino,5);
+                        end
+                        if (obj.wait_status==1)&&(obj.fired==0)
+                            if(rand()>(1-p) & obj.counter>obj.countermax)
+                                if strcmp(arduino.Status,'open')
+                                    fwrite(arduino,obj.sound_mode*10+obj.sound_tone);%the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
+                                end
+                                newdata_sound=3*ones(1,obj.ptperdb);
+                                obj.fired=1;
+                                obj.counter=0;
+                                
+                                obj.detected=1;
+                                obj.counter_detection=0;
+                            end
+                        end
+                    end
+                end
+                if (obj.detec_status==1 & (~obj.stimulateDuringNREM & ~obj.stimulateDuringREM & ~obj.stimulateDuringWake)) | (obj.SleepState==2 & obj.stimulateDuringNREM &  obj.detec_status==1) | (obj.SleepState==1 & obj.stimulateDuringREM &  obj.detec_status==1) | (obj.SleepState==3 & obj.stimulateDuringWake &  obj.detec_status==1)% means the user wants to detect the pic
                     obj.counter=obj.counter+1;  %in initialization it was 0
                     obj.counter_detection=obj.counter_detection+1;
                     % the refractory time of the detection
@@ -605,84 +633,21 @@ classdef BoardPlot < handle
                     
                     
                     if obj.counter>obj.countermax %for firing. take into consideration of the refractory time for firing, here means it now ok to proceed (passed the refractory time)                    
-                        if filter_activated==1
-                            if obj.Math_filtered>=obj.detec_seuil*1e-3
-                                if (obj.wait_status==1)&&(obj.fired==0)
-                                    if obj.sound_mode==0  %detection only
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,0);
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==1 % 1 sound
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,1*10+obj.sound_tone); %the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==2 %10 sound
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,2*10+obj.sound_tone);%the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==3 %1 sound with delay
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,3*10+obj.sound_tone);%the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==4 %10 sound with delay
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,4*10+obj.sound_tone);%the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    end
-                                    obj.fired=1;
-                                    obj.counter=0;
-
-                                    obj.detected=1;
-                                    obj.counter_detection=0;
-
+                        if (obj.Math_filtered>=obj.detec_seuil*1e-3 & filter_activated==1) | (newdata_math>=obj.detec_seuil*1e-3 & filter_activated==0)
+                            if (obj.wait_status==1)&&(obj.fired==0)
+                                if strcmp(arduino.Status,'open')
+                                    fwrite(arduino,obj.sound_mode*10+obj.sound_tone);%the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
                                 end
-                            end
-                        else
-                            if obj.Math_filtered>=obj.detec_seuil*1e-3
-                                if (obj.wait_status==1)&&(obj.fired==0)
-                                    if obj.sound_mode==0  %detection only
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,0);
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==1 % 1 sound
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,1*10+obj.sound_tone);
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==2 %10 sound
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,2);
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==3 %1 sound with delay
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,3);
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==4 %10 sound with delay
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,4);
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    end
-                                    obj.fired=1;
-                                    obj.counter=0;
-
-                                    obj.detected=1;
-                                    obj.counter_detection=0;
-
-                                end
+                                newdata_sound=3*ones(1,obj.ptperdb);
+                                obj.fired=1;
+                                obj.counter=0;
+                                
+                                obj.detected=1;
+                                obj.counter_detection=0;
                             end
                         end
-                    end
+                     end
                 end
-                
                 newdata = newdata_original + obj.Offsets(obj.StoreChannels,1);  %%%%%
                         
  

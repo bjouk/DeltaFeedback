@@ -47,7 +47,7 @@ function varargout = read_continuously(varargin)
 
 % Edit the above text to modify the response to help read_continuously
 
-% Last Modified by GUIDE v2.5 04-Jun-2018 14:49:05
+% Last Modified by GUIDE v2.5 11-Jun-2018 13:56:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1479,5 +1479,55 @@ function stimulateDuringNREM_Callback(hObject, eventdata, handles)
 % hObject    handle to stimulateDuringNREM (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.boardUI.Plot.stimulateDuringNREM= true;
+if(handles.boardUI.Plot.stimulateDuringNREM== false)
+    handles.boardUI.Plot.stimulateDuringNREM= true;
+else 
+    handles.boardUI.Plot.stimulateDuringNREM= false;
+end
 % Hint: get(hObject,'Value') returns toggle state of stimulateDuringNREM
+
+
+% --- Executes on button press in stimulateDuringREM.
+function stimulateDuringREM_Callback(hObject, eventdata, handles)
+% hObject    handle to stimulateDuringREM (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if(handles.boardUI.Plot.stimulateDuringREM== false)
+    handles.boardUI.Plot.stimulateDuringREM= true;
+else 
+    handles.boardUI.Plot.stimulateDuringREM= false;
+end
+
+
+
+% Hint: get(hObject,'Value') returns toggle state of stimulateDuringREM
+
+
+% --- Executes on button press in stimulateDuringWake.
+function stimulateDuringWake_Callback(hObject, eventdata, handles)
+% hObject    handle to stimulateDuringWake (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if(handles.boardUI.Plot.stimulateDuringWake== false)
+    handles.boardUI.Plot.stimulateDuringWake= true;
+else 
+    handles.boardUI.Plot.stimulateDuringWake= false;
+end
+
+
+% Hint: get(hObject,'Value') returns toggle state of stimulateDuringWake
+
+
+% --- Executes on button press in stimulateAtRandom.
+function stimulateAtRandom_Callback(hObject, eventdata, handles)
+% hObject    handle to stimulateAtRandom (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and uif(handles.boardUI.Plot.stimulateDuringWake== false)
+if(handles.boardUI.Plot.stimulateAtRandom== false)
+    handles.boardUI.Plot.stimulateAtRandom= true;
+else 
+    handles.boardUI.Plot.stimulateAtRandom= false;
+end
+
+
+% Hint: get(hObject,'Value') returns toggle state of stimulateAtRandom
