@@ -85,7 +85,8 @@ classdef BoardPlot < handle
         Deltachannel % Channel used for delta oscillations
         DeltaFilt %Filter used for delta oscillations 
         
-        DeltaFiltPFC %Delta filter for PFC detection
+        DeltaFiltPFC_A %Delta filter for PFC detection
+        DeltaFiltPFC_B
         ratioData
         
         result
@@ -94,6 +95,7 @@ classdef BoardPlot < handle
         gamma_value
         ratio_prob
         ratio_value
+        ratio_threshold
         gamma_threshold
         threshold_status
         vline_phase
@@ -104,6 +106,8 @@ classdef BoardPlot < handle
         BullData
         ThetaData
         DeltaData
+        %Stimulate during NREM Sleep
+        stimulateDuringNREM
         
         
     end
@@ -160,7 +164,9 @@ classdef BoardPlot < handle
         % overwriting the part where new data (e.g., 11 & 12) occurs.
         % There's some accounting when we need to get the data out to plot
         % (e.g., we'd get [3 4 5 6 7 8 9 10 11 12]); see the details below.
-        SaveIndex        
+        SaveIndex
+        
+        SleepState %SleepState At the moment
     end
     
     methods
@@ -178,13 +184,13 @@ classdef BoardPlot < handle
             obj.SleepStageAxes = sleep_stage; %Jingyuan 
             obj.HilbertPlotAxes = hilbert_plot;
             obj.hilbert_filter_order = 332;
-            obj.bullchannel = 1; %Default Bull CHannel is 1
+            obj.bullchannel = 12; %Default Bull CHannel is 12
             obj.coeff_bullfmin = 50;
             obj.coeff_bullfmax = 70;
-            obj.Thetachannel = 1;
-            obj.coeff_Thetafmin = 6;
-            obj.coeff_Thetafmax = 12;
-            obj.Deltachannel = 1;
+            obj.Thetachannel = 16;
+            obj.coeff_Thetafmin = 5;
+            obj.coeff_Thetafmax = 10;
+            obj.Deltachannel = 16;
             obj.coeff_Deltafmin = 2;
             obj.coeff_Deltafmax = 5;
             obj.coeff_Spectremax = 100;
@@ -225,7 +231,9 @@ classdef BoardPlot < handle
             obj.Math_buffer_to_filter=zeros(1, obj.num_points);
             obj.Math_buffer_filtered=zeros(1, obj.num_points);
             obj.Math_filtered=0;
-            obj.DeltaFiltPFC=butter(200,[2 5]/(samplingfreq/(2*60)));
+            [b,a]=butter(2,4/(samplingfreq/(2*60)));
+            obj.DeltaFiltPFC_B=b;
+            obj.DeltaFiltPFC_A=a;
             
             obj.Amplifiers = zeros(num_channels, obj.num_points); %pas de voies inutiles
             obj.Math = zeros(1, obj.num_points);
@@ -238,6 +246,8 @@ classdef BoardPlot < handle
             obj.nbrptbf=ceil(obj.durationbf*obj.ptperdb/obj.durationdb);
             obj.nbrdbaft=ceil(obj.durationaft/obj.durationdb);
             obj.nbrptaft=ceil(obj.durationaft*obj.ptperdb/obj.durationdb);
+            
+            obj.stimulateDuringNREM=false;
             
             
             % Channels are offset, so they're not all on top of each other
@@ -431,29 +441,43 @@ classdef BoardPlot < handle
                 
         function hilbert_process_now(obj)
         timestamps = 0:3/(length(obj.BullData)-1):3;
-        set (obj.HilbertPlotLines(1),'XData',timestamps,'YData',obj.BullData);
+        %set (obj.HilbertPlotLines(1),'XData',timestamps,'YData',obj.BullData);
         BullFiltered = filtfilt (obj.bullFilt,obj.BullData); %filter the data between fmin and fmax 
-        set (obj.HilbertPlotLines(2),'XData',timestamps,'YData',BullFiltered);
+        %set (obj.HilbertPlotLines(2),'XData',timestamps,'YData',BullFiltered);
         BullEnv = abs(hilbert(BullFiltered)); % hilbert transfer
         %set (obj.HilbertPlotLines(2),'XData',timestamps,'YData',obj.BullData);
         obj.result(1) = mean (BullEnv);
         
-        set (obj.HilbertPlotLines(3),'XData',timestamps,'YData',obj.ThetaData+ 2e-3*0.5);
+        %set (obj.HilbertPlotLines(3),'XData',timestamps,'YData',obj.ThetaData+ 2e-3*0.5);
         ThetaFiltered = filtfilt (obj.ThetaFilt,obj.ThetaData); %filter the data between fmin and fmax
-        set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',ThetaFiltered+ 2e-3*0.5);
+        %set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',ThetaFiltered+ 2e-3*0.5);
         ThetaEnv = abs( hilbert(ThetaFiltered)); % hilbert transfer
         %set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',obj.ThetaData+ 2e-3*0.5); 
         obj.result(2) = mean(ThetaEnv);
         
 
-        set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',obj.DeltaData+ 4e-3*0.5);
+        %set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',obj.DeltaData+ 4e-3*0.5);
         DeltaFiltered = filtfilt (obj.DeltaFilt,obj.DeltaData); %filter the data between fmin and fmax
-        set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',DeltaFiltered+ 4e-3*0.5);
-        DeltaEnv = abs( hilbert(DeltaFiltered)); % hilbert transfer
-        % obj.DeltaData(obj.DeltaData < 100)= 100;
+        %set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',DeltaFiltered);
+        DeltaEnv = abs( hilbert(DeltaFiltered)); % hilbert transform
+        DeltaEnv(DeltaEnv<0.01)=0.01;
+        %set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',DeltaEnv);
         obj.result(3)=mean(DeltaEnv);
         obj.ratioData = ThetaEnv./DeltaEnv;
         obj.result(4)= mean(obj.ratioData);
+        
+        %%Test SleepState
+        if(obj.threshold_status == 1)
+            if(obj.result(1)>10^(obj.gamma_threshold))
+                obj.SleepState=1; %Wake 
+            else 
+                if(obj.result(4)>10^(obj.ratio_threshold))
+                     obj.SleepState=3; %REM 
+                else
+                    obj.SleepState=2; %NREM 
+                end
+            end
+        end
         end
          
          function refresh_sleepstage_now (obj,timestamps,sleepstage)
@@ -508,6 +532,9 @@ classdef BoardPlot < handle
             delete (obj.hline_phase);
             delete (obj.vline_gamma);
             delete (obj.hline_ratio);
+            obj.gamma_threshold=gamma_threshold;
+            obj.ratio_threshold=ratio_threshold;
+
             
              if (obj.threshold_status==1) 
                 obj.vline_phase = line([gamma_threshold gamma_threshold],[(min(obj.ratio_value)-1) (max(obj.ratio_value)+1)],'LineStyle','--','Color','red','Parent',obj.PhaseSpaceAxes);
@@ -545,15 +572,14 @@ classdef BoardPlot < handle
                 datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Channels,:),2);  %the last 2 is a parameter for the mean function
                 newdata_math=newdata_original(1,:)-newdata_original(2,:);
                 newdata_sound=-0.5*ones(1,obj.ptperdb);
-                obj.Math_buffer_to_filter=[obj.Math_buffer_to_filter(2:end) newdata_math];
                 if filter_activated==1
-                    filtered = filtfilt(obj.DeltaFiltPFC(1),obj.DeltaFiltPFC(2) ,obj.Math_buffer_to_filter);
-                    %filtered=var(filtered);
+                    obj.Math_buffer_to_filter=[obj.Math_buffer_to_filter(2:end) newdata_math];
+                    filtered = filtfilt(obj.DeltaFiltPFC_B,obj.DeltaFiltPFC_A ,obj.Math_buffer_to_filter);
                     obj.Math_filtered=filtered(end);
                 end
                     
                                
-                if obj.detec_status==1 % means the user wants to detect the pic
+                if (obj.detec_status==1 & ~obj.stimulateDuringNREM) | (obj.SleepState==2 & obj.stimulateDuringNREM &  obj.detec_status==1) % means the user wants to detect the pic
                     obj.counter=obj.counter+1;  %in initialization it was 0
                     obj.counter_detection=obj.counter_detection+1;
                     % the refractory time of the detection
@@ -617,7 +643,7 @@ classdef BoardPlot < handle
                                 end
                             end
                         else
-                            if newdata_math>=obj.detec_seuil*1e-3
+                            if obj.Math_filtered>=obj.detec_seuil*1e-3
                                 if (obj.wait_status==1)&&(obj.fired==0)
                                     if obj.sound_mode==0  %detection only
                                         if strcmp(arduino.Status,'open')
@@ -705,7 +731,9 @@ classdef BoardPlot < handle
             end
         end
         function DeltaPFC_filterdesign(obj,fmin,fmax)
-                       obj.DeltaFiltPFC=fir1(12,[fmin fmax]/(obj.samplingfreq/(2*60)));
+            [b,a] =butter(2,4/(obj.samplingfreq/(2*60)));
+            obj.DeltaFiltPFC_B=b;
+            obj.DeltaFiltPFC_A=a;
         end
         function obj=triggerArduino(obj, arduino)
             if strcmp(arduino.Status,'open')

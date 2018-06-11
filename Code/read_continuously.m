@@ -47,7 +47,7 @@ function varargout = read_continuously(varargin)
 
 % Edit the above text to modify the response to help read_continuously
 
-% Last Modified by GUIDE v2.5 30-May-2018 16:45:52
+% Last Modified by GUIDE v2.5 04-Jun-2018 14:49:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1472,3 +1472,12 @@ function testArduino_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.boardUI.Plot.testArduino();
+
+
+% --- Executes on button press in stimulateDuringNREM.
+function stimulateDuringNREM_Callback(hObject, eventdata, handles)
+% hObject    handle to stimulateDuringNREM (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.boardUI.Plot.stimulateDuringNREM= true;
+% Hint: get(hObject,'Value') returns toggle state of stimulateDuringNREM
