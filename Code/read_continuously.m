@@ -47,7 +47,7 @@ function varargout = read_continuously(varargin)
 
 % Edit the above text to modify the response to help read_continuously
 
-% Last Modified by GUIDE v2.5 04-Jun-2018 14:49:05
+% Last Modified by GUIDE v2.5 11-Jun-2018 13:56:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -91,7 +91,7 @@ handles.fire_lastcounter = 0; % the number of detection beyond threshold from 0s
 
 
 handles.boardUI = BoardUI(handles.driver.create_board(), ...
-                          handles.data_plot, handles.hilbert_plot,handles.sleep_stage,handles.phase_space, handles.gamma_distribution,...
+                          handles.data_plot,handles.sleep_stage,handles.phase_space, handles.gamma_distribution,...
                           handles.ratio_distribution, handles.snapshot, handles.chips, handles.channels_to_display, ...
                           handles.FifoLag, handles.FifoPercentageFull,2);  %Jingyuan
 handles.boardUI.Plot.sound_tone = 0; % default sound is tone
@@ -589,14 +589,7 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
     
     
     handles.boardUI.hilbert_process(); 
-    
-    set (handles.text59,'string',num2str(handles.boardUI.Plot.result(1))); % Show on screnn
-    set (handles.text60,'string',num2str(handles.boardUI.Plot.result(2),'%E'));
-    set (handles.text61,'string',num2str(handles.boardUI.Plot.result(3),'%E'));
-    set (handles.text62,'string',num2str(handles.boardUI.Plot.result(4)));
-
-
-     handles.allresult = [handles.allresult;handles.spectre_counter,...
+    handles.allresult = [handles.allresult;handles.spectre_counter,...
                            str2double(datestr(handles.spectre_nowtime/24/3600,'HHMMSS')),handles.boardUI.Plot.result,-1,-1];
                        % add the calcualation reslut to the matrices
                        % the last -1 separately means no setting of detection threshold
@@ -613,14 +606,17 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
     
     if (handles.boardUI.Plot.threshold_status == 1)
         if (handles.boardUI.Plot.result(1)>10^(handles.gamma_threshold))% show the sleepstage on screen
-            set (handles.text73,'string','Wake');
+            set (handles.sleepStage,'string','Wake');
             handles.allresult (end,8) = 3; % 3 means Wake
+            handles.boardUI.setDigitalOutput(0);
         elseif (handles.boardUI.Plot.result(4)>10^(handles.ratio_threshold))
-            set (handles.text73,'string','REM');
+            set (handles.sleepStage,'string','REM');
             handles.allresult (end,8) = 2; % 2 means REM
+            handles.boardUI.setDigitalOutput(1);
         else
-            set (handles.text73,'string','SWS');
+            set (handles.sleepStage,'string','SWS');
             handles.allresult (end,8) = 1;% 1 means SWS
+            handles.boardUI.setDigitalOutput(0);
         end
 
         handles.boardUI.refresh_sleepstage(handles.allresult(:,1),handles.allresult(:,8)); % draw the hyponogram
@@ -724,6 +720,7 @@ sigr = handles.boardUI.Board.SaveFile.SignalGroups;
 sigr{5,1}.Channels{1,1}.Enabled = 1; %audio file
 sigr{5,1}.Channels{2,1}.Enabled = 1; %audio file - envelope
 sigr{5,1}.Channels{3,1}.Enabled = 1; %audio file - gating
+sigr{5,1}.Channels{4,1}.Enabled = 1; %REM Trigger
 handles.boardUI.Board.SaveFile.SignalGroups = sigr;
 handles.boardUI.Board.SaveFile.open(format, path);
 
@@ -820,7 +817,11 @@ function checkbox2_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox2
 visiblevalue=get(hObject,'Value');
-handles.boardUI.Plot.set_visible1(visiblevalue);
+if visiblevalue==0
+    handles.boardUI.Plot.DataPlotLines(1).Visible='off';
+else
+    handles.boardUI.Plot.DataPlotLines(1).Visible='on';
+end
 
 
 % --- Executes on button press in checkbox3.
@@ -831,7 +832,11 @@ function checkbox3_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox3
 visiblevalue=get(hObject,'Value');
-handles.boardUI.Plot.set_visible2(visiblevalue);
+if visiblevalue==0
+    handles.boardUI.Plot.DataPlotLines(2).Visible='off';
+else
+    handles.boardUI.Plot.DataPlotLines(2).Visible='on';
+end
 
 % --- Executes on button press in checkbox4.
 function checkbox4_Callback(hObject, eventdata, handles)
@@ -841,8 +846,11 @@ function checkbox4_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox4
 visiblevalue=get(hObject,'Value');
-handles.boardUI.Plot.set_visible3(visiblevalue);
-
+if visiblevalue==0
+    handles.boardUI.Plot.DataPlotLines(3).Visible='off';
+else
+    handles.boardUI.Plot.DataPlotLines(3).Visible='on';
+end
 % --- Executes on button press in checkbox6.
 function checkbox6_Callback(hObject, eventdata, handles)
 % hObject    handle to checkbox6 (see GCBO)
@@ -851,8 +859,11 @@ function checkbox6_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox6
 visiblevalue=get(hObject,'Value');
-handles.boardUI.Plot.set_visible4(visiblevalue);
-
+if visiblevalue==0
+    handles.boardUI.Plot.DataPlotLines(4).Visible='off';
+else
+    handles.boardUI.Plot.DataPlotLines(4).Visible='on';
+end
 % --- Executes on button press in checkbox8.
 function checkbox8_Callback(hObject, eventdata, handles)
 % hObject    handle to checkbox8 (see GCBO)
@@ -861,8 +872,11 @@ function checkbox8_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox8
 visiblevalue=get(hObject,'Value');
-handles.boardUI.Plot.set_visible5(visiblevalue);
-
+if visiblevalue==0
+    handles.boardUI.Plot.DataPlotLines(5).Visible='off';
+else
+    handles.boardUI.Plot.DataPlotLines(5).Visible='on';
+end
 
 % --- Executes on button press in checkbox11.
 function checkbox11_Callback(hObject, eventdata, handles)
@@ -872,8 +886,11 @@ function checkbox11_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox11
 visiblevalue=get(hObject,'Value');
-handles.boardUI.Plot.set_visible6(visiblevalue);
-
+if visiblevalue==0
+    handles.boardUI.Plot.DataPlotLines(6).Visible='off';
+else
+    handles.boardUI.Plot.DataPlotLines(6).Visible='on';
+end
 % --- Executes on button press in checkbox5.
 function checkbox5_Callback(hObject, eventdata, handles)
 % hObject    handle to checkbox5 (see GCBO)
@@ -1210,7 +1227,7 @@ else
     set(handles.filter_fmax_edit,'Enable','off');
     set(handles.pushbutton_apply_filter,'Enable','off');
     set(handles.checkbox11,'Enable','off');
-    handles.boardUI.Plot.set_visible6(0);
+    handles.boardUI.Plot.DataPlotLines(6).Visible='off';
 end
 guidata(hObject,handles);
 % Hint: get(hObject,'Value') returns toggle state of checkbox_online_filter
@@ -1295,7 +1312,7 @@ filterF_fmin=handles.filter_fmin;  %default value in frequency
 filterF_fmax=handles.filter_fmax;    %default value in frequency
 filterF_order=handles.filter_order;    %default value in frequency
 handles.filter_activated=1;
-handles.boardUI.Plot.DeltaPFC_filterdesign(filterF_fmin,filterF_fmax);
+handles.boardUI.Plot.DeltaPFC_filterdesign(filterF_order,filterF_fmin,filterF_fmax);
 set(handles.checkbox11,'Enable','on');
 set(handles.checkbox11,'Value',1);
 handles.boardUI.Plot.set_visible6(1);
@@ -1390,7 +1407,6 @@ file=strcat(filepath1,filename1);
 handles.boardUI.setChannelsSpectre(file);
 set(handles.bullChannelText,'String',handles.boardUI.Plot.bullchannel);
 set(handles.thetaChannelText,'String',handles.boardUI.Plot.Thetachannel);
-set(handles.deltaChannelText,'String',handles.boardUI.Plot.Deltachannel);
 set(handles.edit5,'String',handles.boardUI.Plot.Channels(1));
 set(handles.edit6,'String',handles.boardUI.Plot.Channels(2));
 
@@ -1479,5 +1495,55 @@ function stimulateDuringNREM_Callback(hObject, eventdata, handles)
 % hObject    handle to stimulateDuringNREM (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.boardUI.Plot.stimulateDuringNREM= true;
+if(handles.boardUI.Plot.stimulateDuringNREM== false)
+    handles.boardUI.Plot.stimulateDuringNREM= true;
+else 
+    handles.boardUI.Plot.stimulateDuringNREM= false;
+end
 % Hint: get(hObject,'Value') returns toggle state of stimulateDuringNREM
+
+
+% --- Executes on button press in stimulateDuringREM.
+function stimulateDuringREM_Callback(hObject, eventdata, handles)
+% hObject    handle to stimulateDuringREM (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if(handles.boardUI.Plot.stimulateDuringREM== false)
+    handles.boardUI.Plot.stimulateDuringREM= true;
+else 
+    handles.boardUI.Plot.stimulateDuringREM= false;
+end
+
+
+
+% Hint: get(hObject,'Value') returns toggle state of stimulateDuringREM
+
+
+% --- Executes on button press in stimulateDuringWake.
+function stimulateDuringWake_Callback(hObject, eventdata, handles)
+% hObject    handle to stimulateDuringWake (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if(handles.boardUI.Plot.stimulateDuringWake== false)
+    handles.boardUI.Plot.stimulateDuringWake= true;
+else 
+    handles.boardUI.Plot.stimulateDuringWake= false;
+end
+
+
+% Hint: get(hObject,'Value') returns toggle state of stimulateDuringWake
+
+
+% --- Executes on button press in stimulateAtRandom.
+function stimulateAtRandom_Callback(hObject, eventdata, handles)
+% hObject    handle to stimulateAtRandom (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and uif(handles.boardUI.Plot.stimulateDuringWake== false)
+if(handles.boardUI.Plot.stimulateAtRandom== false)
+    handles.boardUI.Plot.stimulateAtRandom= true;
+else 
+    handles.boardUI.Plot.stimulateAtRandom= false;
+end
+
+
+% Hint: get(hObject,'Value') returns toggle state of stimulateAtRandom

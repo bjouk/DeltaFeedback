@@ -109,6 +109,16 @@ classdef BoardPlot < handle
         %Stimulate during NREM Sleep
         stimulateDuringNREM
         
+        stimulateDuringREM
+        
+        stimulateDuringWake
+        stimulateAtRandom
+        
+        % Data plot axes (Axes type)
+        DataPlotAxes
+        
+        % Plot lines (array of Line type)
+        DataPlotLines
         
     end
     
@@ -123,11 +133,7 @@ classdef BoardPlot < handle
         % Offsets for the various amplifiers, for plotting        
         Offsets
         
-        % Data plot axes (Axes type)
-        DataPlotAxes
-        
-        % Plot lines (array of Line type)
-        DataPlotLines
+       
         
         SnapshotAxes
         
@@ -172,7 +178,7 @@ classdef BoardPlot < handle
     methods
 
         
-        function obj = BoardPlot(data_plot, hilbert_plot,sleep_stage, phase_space,gamma_distr,ratio_distr,...
+        function obj = BoardPlot(data_plot,sleep_stage, phase_space,gamma_distr,ratio_distr,...
                                 snapshot, num_channels, samplingfreq)
             obj.passed=0;
             obj.detec_seuil=100;
@@ -182,7 +188,6 @@ classdef BoardPlot < handle
             
             
             obj.SleepStageAxes = sleep_stage; %Jingyuan 
-            obj.HilbertPlotAxes = hilbert_plot;
             obj.hilbert_filter_order = 332;
             obj.bullchannel = 12; %Default Bull CHannel is 12
             obj.coeff_bullfmin = 50;
@@ -248,6 +253,9 @@ classdef BoardPlot < handle
             obj.nbrptaft=ceil(obj.durationaft*obj.ptperdb/obj.durationdb);
             
             obj.stimulateDuringNREM=false;
+            obj.stimulateDuringREM=false;
+            obj.stimulateDuringWake=false;
+            obj.stimulateAtRandom=false;
             
             
             % Channels are offset, so they're not all on top of each other
@@ -285,15 +293,6 @@ classdef BoardPlot < handle
             set(obj.SnapshotAxes, 'YLim', [-0.5 (1 + num_channels*0.5)]);
             set(obj.SnapshotAxes, 'XLim', [0 obj.Time_real((obj.nbrptbf+obj.nbrptaft+2))]);
             
-            % Creat the plot area for Hilbert transform
-            axes(obj.HilbertPlotAxes);
-            obj.HilbertPlotLines = plot(0,0,0,0,0,0,0,0,0,0,0,0);
-            set(obj.HilbertPlotLines(1),'LineWidth',1);
-            set(obj.HilbertPlotLines(2),'Color','blue');
-            set(obj.HilbertPlotLines(3),'Color',[0 0.5 0],'LineWidth',1);
-            set(obj.HilbertPlotLines(4),'Color',[0 0.5 0]);
-            set(obj.HilbertPlotLines(5),'Color','red','LineWidth',1);
-            set(obj.HilbertPlotLines(6),'Color','red');
             a = gca;
             l = get(a, 'XLabel');
             set(l, 'String', 'Time(ms)');
@@ -345,55 +344,6 @@ classdef BoardPlot < handle
             
         end
         
-        function set_visible1(obj,visiblevalue)
-            if visiblevalue==0
-                obj.DataPlotLines(1).Visible='off';
-            else
-                obj.DataPlotLines(1).Visible='on';
-            end
-        end
-        
-        function set_visible2(obj,visiblevalue)
-            if visiblevalue==0
-                obj.DataPlotLines(2).Visible='off';
-            else
-                obj.DataPlotLines(2).Visible='on';
-            end
-        end
-        
-        function set_visible3(obj,visiblevalue)
-            if visiblevalue==0
-                obj.DataPlotLines(3).Visible='off';
-            else
-                obj.DataPlotLines(3).Visible='on';
-            end    
-        end
-        
-        function set_visible4(obj,visiblevalue)
-            if visiblevalue==0
-                obj.DataPlotLines(4).Visible='off';
-            else
-                obj.DataPlotLines(4).Visible='on';
-            end    
-        end        
-        
-        function set_visible5(obj,visiblevalue)
-            if visiblevalue==0
-                obj.DataPlotLines(5).Visible='off';
-            else
-                obj.DataPlotLines(5).Visible='on';
-            end    
-        end     
-        
-        function set_visible6(obj,visiblevalue)
-            if visiblevalue==0
-                obj.DataPlotLines(6).Visible='off';
-            else
-                obj.DataPlotLines(6).Visible='on';
-            end    
-        end        
-        
-        
         function refresh_display_now(obj,filter_activated)
         % Update the plot.
         %
@@ -417,8 +367,6 @@ classdef BoardPlot < handle
             end
 
             indices=indices(obj.num_points-obj.nbrptbf-obj.nbrptaft:end);
-    % myAmplifiers=myAmplifiers(:,obj.num_points-obj.nbrptaft-obj.nbrptaft);
-    % mycell=num2cell(obj.Amplifiers(:,indices), 2);
             mycell=[num2cell(obj.Amplifiers(:,indices),2);num2cell(obj.Math(:,indices),2);num2cell(obj.SoundFile(:,indices),2);num2cell(obj.ThresholdFile(:,indices),2);num2cell(obj.Math_filtered_display(:,indices),2)];
             set(obj.SnapshotLines, {'YData'},mycell);        
         end
@@ -439,29 +387,19 @@ classdef BoardPlot < handle
                                 obj.coeff_Deltafmin,'CutoffFrequency2',obj.coeff_Deltafmax,'SampleRate',obj.samplingfreq/60);
         end
                 
-        function hilbert_process_now(obj)
-        timestamps = 0:3/(length(obj.BullData)-1):3;
-        %set (obj.HilbertPlotLines(1),'XData',timestamps,'YData',obj.BullData);
+        function hilbert_process_now(obj) %Sleep scoring is done here
+        
         BullFiltered = filtfilt (obj.bullFilt,obj.BullData); %filter the data between fmin and fmax 
-        %set (obj.HilbertPlotLines(2),'XData',timestamps,'YData',BullFiltered);
         BullEnv = abs(hilbert(BullFiltered)); % hilbert transfer
-        %set (obj.HilbertPlotLines(2),'XData',timestamps,'YData',obj.BullData);
         obj.result(1) = mean (BullEnv);
         
-        %set (obj.HilbertPlotLines(3),'XData',timestamps,'YData',obj.ThetaData+ 2e-3*0.5);
         ThetaFiltered = filtfilt (obj.ThetaFilt,obj.ThetaData); %filter the data between fmin and fmax
-        %set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',ThetaFiltered+ 2e-3*0.5);
         ThetaEnv = abs( hilbert(ThetaFiltered)); % hilbert transfer
-        %set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',obj.ThetaData+ 2e-3*0.5); 
         obj.result(2) = mean(ThetaEnv);
         
-
-        %set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',obj.DeltaData+ 4e-3*0.5);
         DeltaFiltered = filtfilt (obj.DeltaFilt,obj.DeltaData); %filter the data between fmin and fmax
-        %set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',DeltaFiltered);
         DeltaEnv = abs( hilbert(DeltaFiltered)); % hilbert transform
-        DeltaEnv(DeltaEnv<0.01)=0.01;
-        %set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',DeltaEnv);
+        DeltaEnv(DeltaEnv<0.01)=0.01; %To avoid strange values
         obj.result(3)=mean(DeltaEnv);
         obj.ratioData = ThetaEnv./DeltaEnv;
         obj.result(4)= mean(obj.ratioData);
@@ -578,8 +516,28 @@ classdef BoardPlot < handle
                     obj.Math_filtered=filtered(end);
                 end
                     
-                               
-                if (obj.detec_status==1 & ~obj.stimulateDuringNREM) | (obj.SleepState==2 & obj.stimulateDuringNREM &  obj.detec_status==1) % means the user wants to detect the pic
+                if(obj.stimulateAtRandom & obj.detec_status==1) %stimulate at random
+                    p=0.0001;
+                    if (obj.counter_detection>obj.countermax_detection)
+                        if strcmp(arduino.Status,'open')
+                                    fwrite(arduino,50);
+                        end
+                        if (obj.wait_status==1)&&(obj.fired==0)
+                            if(rand()>(1-p) & obj.counter>obj.countermax)
+                                if strcmp(arduino.Status,'open')
+                                    fwrite(arduino,obj.sound_mode*10+obj.sound_tone);%the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
+                                end
+                                newdata_sound=3*ones(1,obj.ptperdb);
+                                obj.fired=1;
+                                obj.counter=0;
+                                
+                                obj.detected=1;
+                                obj.counter_detection=0;
+                            end
+                        end
+                    end
+                end
+                if (obj.detec_status==1 & (~obj.stimulateDuringNREM & ~obj.stimulateDuringREM & ~obj.stimulateDuringWake)) | (obj.SleepState==2 & obj.stimulateDuringNREM &  obj.detec_status==1) | (obj.SleepState==1 & obj.stimulateDuringREM &  obj.detec_status==1) | (obj.SleepState==3 & obj.stimulateDuringWake &  obj.detec_status==1)% means the user wants to detect the pic
                     obj.counter=obj.counter+1;  %in initialization it was 0
                     obj.counter_detection=obj.counter_detection+1;
                     % the refractory time of the detection
@@ -589,7 +547,7 @@ classdef BoardPlot < handle
                                 obj.detected=1; 
                                 obj.counter_detection=0;
                                 if strcmp(arduino.Status,'open')
-                                    fwrite(arduino,5);
+                                    fwrite(arduino,50);
                                 end
                             end                            
                         else
@@ -597,7 +555,7 @@ classdef BoardPlot < handle
                                 obj.detected=1; 
                                 obj.counter_detection=0;
                                 if strcmp(arduino.Status,'open')
-                                    fwrite(arduino,5);
+                                    fwrite(arduino,50);
                                 end
                             end
                         end
@@ -605,84 +563,21 @@ classdef BoardPlot < handle
                     
                     
                     if obj.counter>obj.countermax %for firing. take into consideration of the refractory time for firing, here means it now ok to proceed (passed the refractory time)                    
-                        if filter_activated==1
-                            if obj.Math_filtered>=obj.detec_seuil*1e-3
-                                if (obj.wait_status==1)&&(obj.fired==0)
-                                    if obj.sound_mode==0  %detection only
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,0);
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==1 % 1 sound
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,1*10+obj.sound_tone); %the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==2 %10 sound
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,2*10+obj.sound_tone);%the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==3 %1 sound with delay
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,3*10+obj.sound_tone);%the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==4 %10 sound with delay
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,4*10+obj.sound_tone);%the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    end
-                                    obj.fired=1;
-                                    obj.counter=0;
-
-                                    obj.detected=1;
-                                    obj.counter_detection=0;
-
+                        if (obj.Math_filtered>=obj.detec_seuil*1e-3 & filter_activated==1) | (newdata_math>=obj.detec_seuil*1e-3 & filter_activated==0)
+                            if (obj.wait_status==1)&&(obj.fired==0)
+                                if strcmp(arduino.Status,'open')
+                                    fwrite(arduino,obj.sound_mode*10+obj.sound_tone);%the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
                                 end
-                            end
-                        else
-                            if obj.Math_filtered>=obj.detec_seuil*1e-3
-                                if (obj.wait_status==1)&&(obj.fired==0)
-                                    if obj.sound_mode==0  %detection only
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,0);
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==1 % 1 sound
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,1*10+obj.sound_tone);
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==2 %10 sound
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,2);
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==3 %1 sound with delay
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,3);
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    elseif obj.sound_mode==4 %10 sound with delay
-                                        if strcmp(arduino.Status,'open')
-                                            fwrite(arduino,4);
-                                        end
-                                        newdata_sound=3*ones(1,obj.ptperdb);
-                                    end
-                                    obj.fired=1;
-                                    obj.counter=0;
-
-                                    obj.detected=1;
-                                    obj.counter_detection=0;
-
-                                end
+                                newdata_sound=3*ones(1,obj.ptperdb);
+                                obj.fired=1;
+                                obj.counter=0;
+                                
+                                obj.detected=1;
+                                obj.counter_detection=0;
                             end
                         end
-                    end
+                     end
                 end
-                
                 newdata = newdata_original + obj.Offsets(obj.StoreChannels,1);  %%%%%
                         
  
@@ -730,8 +625,8 @@ classdef BoardPlot < handle
                 fwrite(arduino,1*10+obj.sound_tone); %the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
             end
         end
-        function DeltaPFC_filterdesign(obj,fmin,fmax)
-            [b,a] =butter(2,4/(obj.samplingfreq/(2*60)));
+        function DeltaPFC_filterdesign(obj,order,fmin,fmax)
+            [b,a]=butter(order,fmax/(obj.samplingfreq/(2*60)));
             obj.DeltaFiltPFC_B=b;
             obj.DeltaFiltPFC_A=a;
         end

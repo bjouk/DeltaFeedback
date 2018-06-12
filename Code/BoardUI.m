@@ -46,7 +46,7 @@ classdef BoardUI < handle
     end
     
     methods
-        function obj = BoardUI(board, data_plot,hilbert_plot,sleep_stage,phase_space,gamma_distr,ratio_distr,...
+        function obj = BoardUI(board, data_plot,sleep_stage,phase_space,gamma_distr,ratio_distr,...
                               snapshot, chips_popup, channels_popup, fifolag, fifopercentagefull, num_channels)
         % Constructor
         %
@@ -65,13 +65,12 @@ classdef BoardUI < handle
                 num_channels = 32;
             end
             
-            obj.Board = board;
+            obj.Board = board;        
             obj.ChipsPopup = chips_popup;
             obj.ChannelsToDisplay = channels_popup;
             obj.FifoLag = fifolag;
             obj.FifoPercentageFull = fifopercentagefull;
-            
-            obj.Plot = BoardPlot(data_plot,hilbert_plot,sleep_stage,phase_space,gamma_distr,ratio_distr,...
+            obj.Plot = BoardPlot(data_plot,sleep_stage,phase_space,gamma_distr,ratio_distr,...
                                  snapshot,num_channels,frequency(obj.Board.SamplingRate));
             obj.TheChannels=[1 2];
             
@@ -211,6 +210,10 @@ classdef BoardUI < handle
             obj.Plot.Deltachannel=paramsArray{2,2};
             obj.Plot.Thetachannel=paramsArray{3,2};
             
+        end
+        
+        function obj=setDigitalOutput(obj, value)
+            obj.Board.DigitalOutputs(:)=value;
         end
     end
     
