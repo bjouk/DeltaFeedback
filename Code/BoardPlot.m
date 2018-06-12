@@ -114,6 +114,11 @@ classdef BoardPlot < handle
         stimulateDuringWake
         stimulateAtRandom
         
+        % Data plot axes (Axes type)
+        DataPlotAxes
+        
+        % Plot lines (array of Line type)
+        DataPlotLines
         
     end
     
@@ -128,11 +133,7 @@ classdef BoardPlot < handle
         % Offsets for the various amplifiers, for plotting        
         Offsets
         
-        % Data plot axes (Axes type)
-        DataPlotAxes
-        
-        % Plot lines (array of Line type)
-        DataPlotLines
+       
         
         SnapshotAxes
         
@@ -177,7 +178,7 @@ classdef BoardPlot < handle
     methods
 
         
-        function obj = BoardPlot(data_plot, hilbert_plot,sleep_stage, phase_space,gamma_distr,ratio_distr,...
+        function obj = BoardPlot(data_plot,sleep_stage, phase_space,gamma_distr,ratio_distr,...
                                 snapshot, num_channels, samplingfreq)
             obj.passed=0;
             obj.detec_seuil=100;
@@ -187,7 +188,6 @@ classdef BoardPlot < handle
             
             
             obj.SleepStageAxes = sleep_stage; %Jingyuan 
-            obj.HilbertPlotAxes = hilbert_plot;
             obj.hilbert_filter_order = 332;
             obj.bullchannel = 12; %Default Bull CHannel is 12
             obj.coeff_bullfmin = 50;
@@ -293,15 +293,6 @@ classdef BoardPlot < handle
             set(obj.SnapshotAxes, 'YLim', [-0.5 (1 + num_channels*0.5)]);
             set(obj.SnapshotAxes, 'XLim', [0 obj.Time_real((obj.nbrptbf+obj.nbrptaft+2))]);
             
-            % Creat the plot area for Hilbert transform
-            axes(obj.HilbertPlotAxes);
-            obj.HilbertPlotLines = plot(0,0,0,0,0,0,0,0,0,0,0,0);
-            set(obj.HilbertPlotLines(1),'LineWidth',1);
-            set(obj.HilbertPlotLines(2),'Color','blue');
-            set(obj.HilbertPlotLines(3),'Color',[0 0.5 0],'LineWidth',1);
-            set(obj.HilbertPlotLines(4),'Color',[0 0.5 0]);
-            set(obj.HilbertPlotLines(5),'Color','red','LineWidth',1);
-            set(obj.HilbertPlotLines(6),'Color','red');
             a = gca;
             l = get(a, 'XLabel');
             set(l, 'String', 'Time(ms)');
@@ -353,55 +344,6 @@ classdef BoardPlot < handle
             
         end
         
-        function set_visible1(obj,visiblevalue)
-            if visiblevalue==0
-                obj.DataPlotLines(1).Visible='off';
-            else
-                obj.DataPlotLines(1).Visible='on';
-            end
-        end
-        
-        function set_visible2(obj,visiblevalue)
-            if visiblevalue==0
-                obj.DataPlotLines(2).Visible='off';
-            else
-                obj.DataPlotLines(2).Visible='on';
-            end
-        end
-        
-        function set_visible3(obj,visiblevalue)
-            if visiblevalue==0
-                obj.DataPlotLines(3).Visible='off';
-            else
-                obj.DataPlotLines(3).Visible='on';
-            end    
-        end
-        
-        function set_visible4(obj,visiblevalue)
-            if visiblevalue==0
-                obj.DataPlotLines(4).Visible='off';
-            else
-                obj.DataPlotLines(4).Visible='on';
-            end    
-        end        
-        
-        function set_visible5(obj,visiblevalue)
-            if visiblevalue==0
-                obj.DataPlotLines(5).Visible='off';
-            else
-                obj.DataPlotLines(5).Visible='on';
-            end    
-        end     
-        
-        function set_visible6(obj,visiblevalue)
-            if visiblevalue==0
-                obj.DataPlotLines(6).Visible='off';
-            else
-                obj.DataPlotLines(6).Visible='on';
-            end    
-        end        
-        
-        
         function refresh_display_now(obj,filter_activated)
         % Update the plot.
         %
@@ -425,8 +367,6 @@ classdef BoardPlot < handle
             end
 
             indices=indices(obj.num_points-obj.nbrptbf-obj.nbrptaft:end);
-    % myAmplifiers=myAmplifiers(:,obj.num_points-obj.nbrptaft-obj.nbrptaft);
-    % mycell=num2cell(obj.Amplifiers(:,indices), 2);
             mycell=[num2cell(obj.Amplifiers(:,indices),2);num2cell(obj.Math(:,indices),2);num2cell(obj.SoundFile(:,indices),2);num2cell(obj.ThresholdFile(:,indices),2);num2cell(obj.Math_filtered_display(:,indices),2)];
             set(obj.SnapshotLines, {'YData'},mycell);        
         end
@@ -447,29 +387,19 @@ classdef BoardPlot < handle
                                 obj.coeff_Deltafmin,'CutoffFrequency2',obj.coeff_Deltafmax,'SampleRate',obj.samplingfreq/60);
         end
                 
-        function hilbert_process_now(obj)
-        timestamps = 0:3/(length(obj.BullData)-1):3;
-        %set (obj.HilbertPlotLines(1),'XData',timestamps,'YData',obj.BullData);
+        function hilbert_process_now(obj) %Sleep scoring is done here
+        
         BullFiltered = filtfilt (obj.bullFilt,obj.BullData); %filter the data between fmin and fmax 
-        %set (obj.HilbertPlotLines(2),'XData',timestamps,'YData',BullFiltered);
         BullEnv = abs(hilbert(BullFiltered)); % hilbert transfer
-        %set (obj.HilbertPlotLines(2),'XData',timestamps,'YData',obj.BullData);
         obj.result(1) = mean (BullEnv);
         
-        %set (obj.HilbertPlotLines(3),'XData',timestamps,'YData',obj.ThetaData+ 2e-3*0.5);
         ThetaFiltered = filtfilt (obj.ThetaFilt,obj.ThetaData); %filter the data between fmin and fmax
-        %set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',ThetaFiltered+ 2e-3*0.5);
         ThetaEnv = abs( hilbert(ThetaFiltered)); % hilbert transfer
-        %set (obj.HilbertPlotLines(4),'XData',timestamps,'YData',obj.ThetaData+ 2e-3*0.5); 
         obj.result(2) = mean(ThetaEnv);
         
-
-        %set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',obj.DeltaData+ 4e-3*0.5);
         DeltaFiltered = filtfilt (obj.DeltaFilt,obj.DeltaData); %filter the data between fmin and fmax
-        %set (obj.HilbertPlotLines(5),'XData',timestamps,'YData',DeltaFiltered);
         DeltaEnv = abs( hilbert(DeltaFiltered)); % hilbert transform
-        DeltaEnv(DeltaEnv<0.01)=0.01;
-        %set (obj.HilbertPlotLines(6),'XData',timestamps,'YData',DeltaEnv);
+        DeltaEnv(DeltaEnv<0.01)=0.01; %To avoid strange values
         obj.result(3)=mean(DeltaEnv);
         obj.ratioData = ThetaEnv./DeltaEnv;
         obj.result(4)= mean(obj.ratioData);
@@ -590,7 +520,7 @@ classdef BoardPlot < handle
                     p=0.0001;
                     if (obj.counter_detection>obj.countermax_detection)
                         if strcmp(arduino.Status,'open')
-                                    fwrite(arduino,5);
+                                    fwrite(arduino,50);
                         end
                         if (obj.wait_status==1)&&(obj.fired==0)
                             if(rand()>(1-p) & obj.counter>obj.countermax)
@@ -617,7 +547,7 @@ classdef BoardPlot < handle
                                 obj.detected=1; 
                                 obj.counter_detection=0;
                                 if strcmp(arduino.Status,'open')
-                                    fwrite(arduino,5);
+                                    fwrite(arduino,50);
                                 end
                             end                            
                         else
@@ -625,7 +555,7 @@ classdef BoardPlot < handle
                                 obj.detected=1; 
                                 obj.counter_detection=0;
                                 if strcmp(arduino.Status,'open')
-                                    fwrite(arduino,5);
+                                    fwrite(arduino,50);
                                 end
                             end
                         end
@@ -695,8 +625,8 @@ classdef BoardPlot < handle
                 fwrite(arduino,1*10+obj.sound_tone); %the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
             end
         end
-        function DeltaPFC_filterdesign(obj,fmin,fmax)
-            [b,a] =butter(2,4/(obj.samplingfreq/(2*60)));
+        function DeltaPFC_filterdesign(obj,order,fmin,fmax)
+            [b,a]=butter(order,fmax/(obj.samplingfreq/(2*60)));
             obj.DeltaFiltPFC_B=b;
             obj.DeltaFiltPFC_A=a;
         end
