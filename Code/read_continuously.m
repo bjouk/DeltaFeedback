@@ -47,7 +47,7 @@ function varargout = read_continuously(varargin)
 
 % Edit the above text to modify the response to help read_continuously
 
-% Last Modified by GUIDE v2.5 11-Jun-2018 13:56:27
+% Last Modified by GUIDE v2.5 12-Jun-2018 17:43:23
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -83,7 +83,7 @@ handles.audio_record = 1;
 handles.arduino=serial('COM200'); %with a impossibly big number to avoid all possible conflict. just to initialise the serial class
 handles.driver = rhd2000.Driver;
 
-handles.spectre_refresh_every = 3; % Jingyuan
+handles.spectre_refresh_every = 1; % Jingyuan
 handles.spectre_lastsave = now*24*3600; % Jingyuan the last time we collect the data in the past 3s; the value renew every 60 points
 handles.spectre_lastcal = now*24*3600; % Jingyuan the last time we calculate the spectre density ; the value renew every 3s
 handles.spectre_counter = 0;  % Jingyuan note relative calculation time of the spectre data
@@ -607,27 +607,30 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
     if (handles.boardUI.Plot.threshold_status == 1)
         if (handles.boardUI.Plot.result(1)>10^(handles.gamma_threshold))% show the sleepstage on screen
             set (handles.sleepStage,'string','Wake');
+            set (handles.timerNREM,'string','');
             handles.allresult (end,8) = 3; % 3 means Wake
-            handles.boardUI.setDigitalOutput(0);
+            handles.boardUI.setDigitalOutput(3);
         elseif (handles.boardUI.Plot.result(4)>10^(handles.ratio_threshold))
             set (handles.sleepStage,'string','REM');
+            set (handles.timerNREM,'string','');
             handles.allresult (end,8) = 2; % 2 means REM
-            handles.boardUI.setDigitalOutput(1);
+            handles.boardUI.setDigitalOutput(2);
         else
-            set (handles.sleepStage,'string','SWS');
+            set (handles.sleepStage,'string','NREM');
             handles.allresult (end,8) = 1;% 1 means SWS
-            handles.boardUI.setDigitalOutput(0);
+            set (handles.timerNREM,'string',strcat(num2str(handles.boardUI.Plot.timerNREM),'s'));
+            handles.boardUI.setDigitalOutput(1);
         end
 
         handles.boardUI.refresh_sleepstage(handles.allresult(:,1),handles.allresult(:,8)); % draw the hyponogram
         
         
-        set (handles.text75,'string',num2str(sum(handles.allresult(:,8)==1)*3/60));
-        set (handles.text77,'string',num2str( 100 * sum(handles.allresult(:,8)==1) / nnz(handles.allresult(:,8)+1) ) );
-        set (handles.text80,'string',num2str(sum(handles.allresult(:,8)==2)*3/60));
-        set (handles.text81,'string',num2str( 100 * sum(handles.allresult(:,8)==2) / nnz(handles.allresult(:,8)+1) ) );
-        set (handles.text82,'string',num2str(sum(handles.allresult(:,8)==3)*3/60));
-        set (handles.text83,'string',num2str( 100 * sum(handles.allresult(:,8)==3) / nnz(handles.allresult(:,8)+1) ) );
+        set (handles.text75,'string',num2str(sum(handles.allresult(:,8)==1)/60,'%.2f'   ));
+        set (handles.text77,'string',num2str( 100 * sum(handles.allresult(:,8)==1) / nnz(handles.allresult(:,8)+1),'%.2f' ) );
+        set (handles.text80,'string',num2str(sum(handles.allresult(:,8)==2)/60,'%.2f'));
+        set (handles.text81,'string',num2str( 100 * sum(handles.allresult(:,8)==2) / nnz(handles.allresult(:,8)+1),'%.2f' ) );
+        set (handles.text82,'string',num2str(sum(handles.allresult(:,8)==3)/60,'%.2f'));
+        set (handles.text83,'string',num2str( 100 * sum(handles.allresult(:,8)==3) / nnz(handles.allresult(:,8)+1),'%.2f' ) );
 
     end
 
@@ -1315,8 +1318,7 @@ handles.filter_activated=1;
 handles.boardUI.Plot.DeltaPFC_filterdesign(filterF_order,filterF_fmin,filterF_fmax);
 set(handles.checkbox11,'Enable','on');
 set(handles.checkbox11,'Value',1);
-handles.boardUI.Plot.set_visible6(1);
-
+handles.boardUI.Plot.DataPlotLines(6).Visible='on';
 guidata(hObject,handles);
 
 
@@ -1405,10 +1407,10 @@ function loadChannel_Callback(hObject, eventdata, handles)
 [filename1,filepath1]=uigetfile({'*.*','All Files'},'Select Data File 1');
 file=strcat(filepath1,filename1);
 handles.boardUI.setChannelsSpectre(file);
-set(handles.bullChannelText,'String',handles.boardUI.Plot.bullchannel);
-set(handles.thetaChannelText,'String',handles.boardUI.Plot.Thetachannel);
-set(handles.edit5,'String',handles.boardUI.Plot.Channels(1));
-set(handles.edit6,'String',handles.boardUI.Plot.Channels(2));
+set(handles.bullChannelText,'String',handles.boardUI.Plot.bullchannel-1);
+set(handles.thetaChannelText,'String',handles.boardUI.Plot.Thetachannel-1);
+set(handles.edit5,'String',handles.boardUI.Plot.Channels(1)-1);
+set(handles.edit6,'String',handles.boardUI.Plot.Channels(2)-1);
 
 
 
@@ -1547,3 +1549,31 @@ end
 
 
 % Hint: get(hObject,'Value') returns toggle state of stimulateAtRandom
+
+
+% --- Executes on button press in openNeuroscope.
+function openNeuroscope_Callback(hObject, eventdata, handles)
+% hObject    handle to openNeuroscope (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+winopen(handles.pathandname);
+
+
+
+% --- Executes on button press in offsetUp.
+function offsetUp_Callback(hObject, eventdata, handles)
+% hObject    handle to offsetUp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.boardUI.Plot.OffsetAdjust=handles.boardUI.Plot.OffsetAdjust+1E-5;
+
+
+
+
+
+% --- Executes on button press in offsetDown.
+function offsetDown_Callback(hObject, eventdata, handles)
+% hObject    handle to offsetDown (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.boardUI.Plot.OffsetAdjust=handles.boardUI.Plot.OffsetAdjust-1E-5;

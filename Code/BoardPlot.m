@@ -93,6 +93,8 @@ classdef BoardPlot < handle
         
         gamma_prob
         gamma_value
+        ratio_probSleep
+        ratio_valueSleep
         ratio_prob
         ratio_value
         ratio_threshold
@@ -119,11 +121,13 @@ classdef BoardPlot < handle
         
         % Plot lines (array of Line type)
         DataPlotLines
+        OffsetAdjust
         
+        timerNREM %Timer for last epoch of NREM
     end
     
     properties (Access = private, Hidden = false)
-
+        SpectreWindowSize
         % Amplifier data for plotting        
         Amplifiers
         
@@ -151,6 +155,7 @@ classdef BoardPlot < handle
         HilbertPlotLines
         
         PhaseSpaceAxes
+        PhaseSpaceTrajectory
         PhaseSpaceLines
         
         gamma_distributionAxes
@@ -185,8 +190,8 @@ classdef BoardPlot < handle
             obj.fired=0;
             obj.detected=0;
             obj.DataPlotAxes = data_plot;
-            
-            
+            obj.SpectreWindowSize=3;
+            obj.OffsetAdjust=0;
             obj.SleepStageAxes = sleep_stage; %Jingyuan 
             obj.hilbert_filter_order = 332;
             obj.bullchannel = 12; %Default Bull CHannel is 12
@@ -204,11 +209,11 @@ classdef BoardPlot < handle
             obj.ThetaFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',obj.coeff_Thetafmin,'CutoffFrequency2',obj.coeff_Thetafmax,'SampleRate',obj.samplingfreq/60);           
             obj.DeltaFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',obj.coeff_Deltafmin,'CutoffFrequency2',obj.coeff_Deltafmax,'SampleRate',obj.samplingfreq/60);            
             obj.result = [];
-            
+            obj.timerNREM=0;
             %Setting up the spectrum analysis variables
-            obj.BullData=zeros(1, ceil(obj.samplingfreq/60*3));
-            obj.ThetaData=zeros(1, ceil(obj.samplingfreq/60*3));
-            obj.DeltaData=zeros(1, ceil(obj.samplingfreq/60*3));
+            obj.BullData=zeros(1, ceil(obj.samplingfreq/60*obj.SpectreWindowSize));
+            obj.ThetaData=zeros(1, ceil(obj.samplingfreq/60*obj.SpectreWindowSize));
+            obj.DeltaData=zeros(1, ceil(obj.samplingfreq/60*obj.SpectreWindowSize));
             
             obj.PhaseSpaceAxes = phase_space; %Jingyuan
             obj.gamma_distributionAxes = gamma_distr;
@@ -318,7 +323,7 @@ classdef BoardPlot < handle
             
             % Create and set up the plot area of phase space and distribution Jingyuan
             axes (obj.PhaseSpaceAxes);
-            obj.PhaseSpaceLines = scatter([],[],'.');
+            obj.PhaseSpaceLines = plot([0],[0],'.',[0],[0],'r.-');
             set(gca,'XTick',[]);
             set(gca,'YTick',[]);
             set(obj.PhaseSpaceAxes, 'YLim', [-0.5 2.5]);
@@ -334,7 +339,7 @@ classdef BoardPlot < handle
             set(obj.gamma_distributionAxes, 'XLim', [-8 -4]);
                         
             axes(obj.ratio_distributionAxes);
-            obj.ratio_distributionLines = plot(0,0);
+            obj.ratio_distributionLines = plot([0],[0],[0],[0]);
             set(gca,'XTick',[]);
             a = gca;
             l = get(a, 'YLabel');
@@ -408,11 +413,14 @@ classdef BoardPlot < handle
         if(obj.threshold_status == 1)
             if(obj.result(1)>10^(obj.gamma_threshold))
                 obj.SleepState=1; %Wake 
+                obj.timerNREM=0;
             else 
                 if(obj.result(4)>10^(obj.ratio_threshold))
                      obj.SleepState=3; %REM 
+                     obj.timerNREM=0;
                 else
-                    obj.SleepState=2; %NREM 
+                    obj.SleepState=2; %NREM
+                    obj.timerNREM=obj.timerNREM+1;
                 end
             end
         end
@@ -447,20 +455,29 @@ classdef BoardPlot < handle
             
             [obj.gamma_prob,obj.gamma_value] = ksdensity (gamma);
             [obj.ratio_prob,obj.ratio_value] = ksdensity (ratio); 
+
+            if(length(gamma)>3)
+                set(obj.PhaseSpaceLines(1),'XData',gamma(1:(end-3)),'YData',ratio(1:(end-3)));
+                set(obj.PhaseSpaceLines(2),'XData',gamma((end-2):end),'YData',ratio((end-2):end));
+            else
+                set(obj.PhaseSpaceLines(1),'XData',gamma,'YData',ratio);
+            end
             
-            
-            set(obj.PhaseSpaceLines,'XData',gamma,'YData',ratio);
             set(obj.PhaseSpaceAxes, 'XLim', [(min(obj.gamma_value)-1) (max(obj.gamma_value)+1)]);
             set(obj.PhaseSpaceAxes, 'YLim', [(min(obj.ratio_value)-1) (max(obj.ratio_value)+1)]);
-
+            
+            
             
             set(obj.gamma_distributionLines,'XData',obj.gamma_value,'YData',obj.gamma_prob);
-             set(obj.gamma_distributionAxes, 'XLim',  [(min(obj.gamma_value)-1) (max(obj.gamma_value)+1)]);
+            set(obj.gamma_distributionAxes, 'XLim',  [(min(obj.gamma_value)-1) (max(obj.gamma_value)+1)]);
              
 
-            set(obj.ratio_distributionLines,'XData',obj.ratio_prob,'YData',obj.ratio_value);
+            set(obj.ratio_distributionLines(1),'XData',obj.ratio_prob,'YData',obj.ratio_value);
             set(obj.ratio_distributionAxes, 'YLim', [(min(obj.ratio_value)-1) (max(obj.ratio_value)+1)]);
-            
+            if(obj.threshold_status==1) 
+                [obj.ratio_probSleep,obj.ratio_valueSleep] = ksdensity (ratio(find(gamma<(obj.gamma_threshold))));
+                set(obj.ratio_distributionLines(2),'XData',obj.ratio_probSleep,'YData',obj.ratio_valueSleep);
+            end
             
         end
         
@@ -578,7 +595,7 @@ classdef BoardPlot < handle
                         end
                      end
                 end
-                newdata = newdata_original + obj.Offsets(obj.StoreChannels,1);  %%%%%
+                newdata = newdata_original + obj.Offsets(obj.StoreChannels,1)+[0, obj.OffsetAdjust]';  %%%%%
                         
  
             % inject the data from newdata, newdata_math, newdata_sound to
