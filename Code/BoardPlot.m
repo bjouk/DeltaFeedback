@@ -124,6 +124,7 @@ classdef BoardPlot < handle
         OffsetAdjust
         
         timerNREM %Timer for last epoch of NREM
+        timerREM
     end
     
     properties (Access = private, Hidden = false)
@@ -323,7 +324,7 @@ classdef BoardPlot < handle
             
             % Create and set up the plot area of phase space and distribution Jingyuan
             axes (obj.PhaseSpaceAxes);
-            obj.PhaseSpaceLines = plot([0],[0],'.',[0],[0],'r.-');
+            obj.PhaseSpaceLines = plot([0],[0],'.',[0],[0],'k.-',[0],[0],'rO',[0],[0],'r.',[0],[0],'g.',[0],[0],'b.');
             set(gca,'XTick',[]);
             set(gca,'YTick',[]);
             set(obj.PhaseSpaceAxes, 'YLim', [-0.5 2.5]);
@@ -414,13 +415,16 @@ classdef BoardPlot < handle
             if(obj.result(1)>10^(obj.gamma_threshold))
                 obj.SleepState=1; %Wake 
                 obj.timerNREM=0;
+                obj.timerREM=0;
             else 
                 if(obj.result(4)>10^(obj.ratio_threshold))
                      obj.SleepState=3; %REM 
                      obj.timerNREM=0;
+                     obj.timerREM=obj.timerREM+1;
                 else
                     obj.SleepState=2; %NREM
                     obj.timerNREM=obj.timerNREM+1;
+                    obj.timerREM=0;
                 end
             end
         end
@@ -453,14 +457,35 @@ classdef BoardPlot < handle
                 ratio(1:indice-1) = [];
             end
             
-            [obj.gamma_prob,obj.gamma_value] = ksdensity (gamma);
-            [obj.ratio_prob,obj.ratio_value] = ksdensity (ratio); 
-
-            if(length(gamma)>3)
-                set(obj.PhaseSpaceLines(1),'XData',gamma(1:(end-3)),'YData',ratio(1:(end-3)));
-                set(obj.PhaseSpaceLines(2),'XData',gamma((end-2):end),'YData',ratio((end-2):end));
+            if(length(gamma)>10)
+                if( obj.threshold_status==1)
+                    set(obj.PhaseSpaceLines(1),'Color','none');
+                    gamma_disp=gamma(3:end);
+                    ratio_disp=ratio(3:end);
+                    ratio_sleep=ratio_disp(find(gamma_disp<obj.gamma_threshold));
+                    gamma_sleep=gamma_disp(find(gamma_disp<obj.gamma_threshold));
+                    if(~isempty(gamma_disp(find(gamma_disp>obj.gamma_threshold))))
+                        set(obj.PhaseSpaceLines(4),'XData',gamma_disp(find(gamma_disp>obj.gamma_threshold)),'YData',ratio_disp(find(gamma_disp>obj.gamma_threshold)));
+                    end
+                    if(~isempty(gamma_sleep))
+                        if(~isempty(gamma_sleep(find(ratio_sleep<obj.ratio_threshold))))
+                            set(obj.PhaseSpaceLines(5),'XData',gamma_sleep(find(ratio_sleep<obj.ratio_threshold)),'YData',ratio_sleep(find(ratio_sleep<obj.ratio_threshold)));
+                        end
+                        if(~isempty(gamma_sleep(find(ratio_sleep>obj.ratio_threshold))))
+                            set(obj.PhaseSpaceLines(6),'XData',gamma_sleep(find(ratio_sleep>obj.ratio_threshold)),'YData',ratio_sleep(find(ratio_sleep>obj.ratio_threshold)));
+                        end
+                    end
+                else
+                    set(obj.PhaseSpaceLines(1),'XData',gamma(3:(end-10)),'YData',ratio(3:(end-10)));
+                end
+                set(obj.PhaseSpaceLines(2),'XData',gamma((end-9):end),'YData',ratio((end-9):end));
+                set(obj.PhaseSpaceLines(3),'XData',gamma(end),'YData',ratio(end));
+                [obj.gamma_prob,obj.gamma_value] = ksdensity (gamma(3:end));
+                [obj.ratio_prob,obj.ratio_value] = ksdensity (ratio(3:end)); 
             else
                 set(obj.PhaseSpaceLines(1),'XData',gamma,'YData',ratio);
+                [obj.gamma_prob,obj.gamma_value] = ksdensity (gamma);
+                [obj.ratio_prob,obj.ratio_value] = ksdensity (ratio); 
             end
             
             set(obj.PhaseSpaceAxes, 'XLim', [(min(obj.gamma_value)-1) (max(obj.gamma_value)+1)]);
@@ -491,7 +516,7 @@ classdef BoardPlot < handle
             obj.ratio_threshold=ratio_threshold;
 
             
-             if (obj.threshold_status==1) 
+             if (obj.threshold_status==1 & ~isempty(obj.ratio_value)) 
                 obj.vline_phase = line([gamma_threshold gamma_threshold],[(min(obj.ratio_value)-1) (max(obj.ratio_value)+1)],'LineStyle','--','Color','red','Parent',obj.PhaseSpaceAxes);
                 obj.hline_phase = refline(obj.PhaseSpaceAxes,[0 ratio_threshold]);
                 set (obj.hline_phase,'LineStyle','--');

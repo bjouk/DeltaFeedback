@@ -43,6 +43,7 @@ classdef BoardUI < handle
         Plot2 %Kejian
         ChipIndex %Kejian
         FilterDef %Kejian
+        paramsFile
     end
     
     methods
@@ -201,19 +202,27 @@ classdef BoardUI < handle
 
         function obj=set_thethreshold (obj,gamma_threshold,ratio_threshold)
             obj.Plot.set_thethreshold_now(gamma_threshold,ratio_threshold);
+            if ~isempty(obj.paramsFile)
+                paramsArray=readtable(obj.paramsFile,'Delimiter',';');
+                paramsArray{6,2}=gamma_threshold;
+                paramsArray{7,2}=ratio_threshold;
+                writetable(paramsArray,obj.paramsFile,'Delimiter',';');
+            end
         end
-        function obj=setChannelsSpectre (obj, file) %Get the mouse channels from a .csv file and use the data 
+        function obj=setChannelsSpectre(obj, file) %Get the mouse channels from a .csv file and use the data 
             paramsArray=readtable(file,'Delimiter',';');
+            obj.paramsFile=file;
             obj.set_thechannels([paramsArray{4,2}+1 paramsArray{5,2}+1]);
             obj.set_channels();
             obj.Plot.bullchannel=paramsArray{1,2}+1;
             obj.Plot.Deltachannel=paramsArray{2,2}+1;
             obj.Plot.Thetachannel=paramsArray{3,2}+1;
+            obj.set_thethreshold(paramsArray{6,2},paramsArray{7,2});
             
         end
         
         function obj=setDigitalOutput(obj, value)
-            obj.Board.DigitalOutputs(9:end)=de2bi(value,8);
+            obj.Board.DigitalOutputs(9:end)=dec2bin(value,8);
         end
     end
     

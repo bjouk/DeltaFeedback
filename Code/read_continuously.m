@@ -598,7 +598,6 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
         
     if (handles.boardUI.Plot.armed==1) % save the number pf detection beyond the threshold in the past 3s
         handles.allresult (end,7) = handles.fire_counter-handles.fire_lastcounter;
-        set (handles.text65,'String',num2str(handles.fire_counter-handles.fire_lastcounter));
         handles.boardUI.detection_number(handles.allresult(:,1),handles.allresult(:,7));
         handles.fire_lastcounter = handles.fire_counter;
     end
@@ -612,7 +611,7 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
             handles.boardUI.setDigitalOutput(3);
         elseif (handles.boardUI.Plot.result(4)>10^(handles.ratio_threshold))
             set (handles.sleepStage,'string','REM');
-            set (handles.timerNREM,'string','');
+            set (handles.timerNREM,'string',strcat(num2str(handles.boardUI.Plot.timerREM),'s'));
             handles.allresult (end,8) = 2; % 2 means REM
             handles.boardUI.setDigitalOutput(2);
         else
@@ -768,7 +767,7 @@ function edit5_Callback(hObject, eventdata, handles) %channels selection
 
 % Hints: get(hObject,'String') returns contents of edit5 as text
 %        str2double(get(hObject,'String')) returns contents of edit5 as a double
-handles.thechannels(1)=str2double(get(hObject,'String'));
+handles.thechannels(1)=str2double(get(hObject,'String'))+1;
 guidata(hObject, handles);
 
 
@@ -793,7 +792,7 @@ function edit6_Callback(hObject, eventdata, handles) %channels selection
 
 % Hints: get(hObject,'String') returns contents of edit6 as text
 %        str2double(get(hObject,'String')) returns contents of edit6 as a double
-handles.thechannels(2)=str2double(get(hObject,'String'));
+handles.thechannels(2)=str2double(get(hObject,'String'))+1;
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -1411,6 +1410,10 @@ set(handles.bullChannelText,'String',handles.boardUI.Plot.bullchannel-1);
 set(handles.thetaChannelText,'String',handles.boardUI.Plot.Thetachannel-1);
 set(handles.edit5,'String',handles.boardUI.Plot.Channels(1)-1);
 set(handles.edit6,'String',handles.boardUI.Plot.Channels(2)-1);
+set(handles.thetaDeltaThreshold,'String',handles.boardUI.Plot.ratio_threshold);
+set(handles.gammaThreshold,'String',handles.boardUI.Plot.gamma_threshold);
+
+
 
 
 
