@@ -47,7 +47,7 @@ function varargout = read_continuously(varargin)
 
 % Edit the above text to modify the response to help read_continuously
 
-% Last Modified by GUIDE v2.5 12-Jun-2018 17:43:23
+% Last Modified by GUIDE v2.5 19-Jun-2018 15:58:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -143,6 +143,7 @@ handles.boardUI.Plot.detec_status=0;
 handles.boardUI.Plot.wait_status=0;
 set(handles.checkbox5, 'Enable','off');
 handles.boardUI.Plot.prefactors=[1 1];
+handles.boardUI.webcaminit(handles.webcam);
 % When running, we'll refresh the plot every three times through the timer
 % callback function
 handles.refresh_every = 3;
@@ -589,6 +590,7 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
     
     
     handles.boardUI.hilbert_process(); 
+    handles.boardUI.refreshWebcam(handles.webcam);
     handles.allresult = [handles.allresult;handles.spectre_counter,...
                            str2double(datestr(handles.spectre_nowtime/24/3600,'HHMMSS')),handles.boardUI.Plot.result,-1,-1];
                        % add the calcualation reslut to the matrices

@@ -44,6 +44,9 @@ classdef BoardUI < handle
         ChipIndex %Kejian
         FilterDef %Kejian
         paramsFile
+        Webcam
+        MaskWebcam
+        previewWindow
     end
     
     methods
@@ -125,6 +128,7 @@ classdef BoardUI < handle
             set(obj.FifoPercentageFull, 'String', ...
             sprintf('(%2.2f%% full)', obj.Board.FIFOPercentageFull));
         end
+        
         
         %--------------------------------------------------------------------
         % list_of_chips is used to populate the Chips popup
@@ -220,10 +224,29 @@ classdef BoardUI < handle
             obj.set_thethreshold(paramsArray{6,2},paramsArray{7,2});
             
         end
-        
         function obj=setDigitalOutput(obj, value)
             obj.Board.DigitalOutputs(9:end)=dec2bin(value,8);
         end
+        
+        function obj=webcaminit(obj,previewWindow)
+            obj.Webcam=webcam;
+            obj.Webcam.Resolution='320x240';
+            previewWeb = snapshot(obj.Webcam);
+            previewWeb=previewWeb(40:125,41:241);
+            set(previewWindow,'Units','pixels');
+            resizePos = get(previewWindow,'Position');
+            previewWeb= imresize(previewWeb, [resizePos(3) resizePos(3)]);
+            imshow(previewWeb,'Parent', previewWindow);
+        end
+        
+        function obj=refreshWebcam(obj,previewWindow)
+            previewWeb = snapshot(obj.Webcam);
+            previewWeb=previewWeb(40:125,41:241,:);
+            set(previewWindow,'Units','pixels');
+            resizePos = get(previewWindow,'Position');
+            previewWeb= imresize(previewWeb, [resizePos(3) resizePos(3)]);
+            imshow(previewWeb,'Parent', previewWindow);
+        end   
     end
     
     
