@@ -457,7 +457,7 @@ classdef BoardPlot < handle
                 ratio(1:indice-1) = [];
             end
             
-            if(length(gamma)>10)
+            if(length(gamma)>10) %indicate the last 10 points with black snake
                 if( obj.threshold_status==1)
                     set(obj.PhaseSpaceLines(1),'Color','none');
                     gamma_disp=gamma(3:end);

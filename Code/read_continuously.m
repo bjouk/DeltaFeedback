@@ -47,7 +47,7 @@ function varargout = read_continuously(varargin)
 
 % Edit the above text to modify the response to help read_continuously
 
-% Last Modified by GUIDE v2.5 19-Jun-2018 15:58:08
+% Last Modified by GUIDE v2.5 20-Jun-2018 10:50:12
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -628,10 +628,17 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
         
         set (handles.text75,'string',num2str(sum(handles.allresult(:,8)==1)/60,'%.2f'   ));
         set (handles.text77,'string',num2str( 100 * sum(handles.allresult(:,8)==1) / nnz(handles.allresult(:,8)+1),'%.2f' ) );
+        set (handles.numberNREM,'string',num2str(sum(diff([1 handles.allresult(:,8)'==1 1])>0)-1) );
+        set (handles.meanNREM,'string',num2str((sum(handles.allresult(:,8)==1)/60)/(sum(diff([1 handles.allresult(:,8)'==1 1])>0)-1)) );
         set (handles.text80,'string',num2str(sum(handles.allresult(:,8)==2)/60,'%.2f'));
         set (handles.text81,'string',num2str( 100 * sum(handles.allresult(:,8)==2) / nnz(handles.allresult(:,8)+1),'%.2f' ) );
+        set (handles.numberREM,'string',num2str(sum(diff([1 handles.allresult(:,8)'==2 1])>0)-1) );
+        set (handles.meanREM,'string',num2str((sum(handles.allresult(:,8)==2)/60)/(sum(diff([1 handles.allresult(:,8)'==2 1])>0)-1)) );
         set (handles.text82,'string',num2str(sum(handles.allresult(:,8)==3)/60,'%.2f'));
         set (handles.text83,'string',num2str( 100 * sum(handles.allresult(:,8)==3) / nnz(handles.allresult(:,8)+1),'%.2f' ) );
+        set (handles.numberWake,'string',num2str(sum(diff([1 handles.allresult(:,8)'==3 1])>0)-1) );
+        set (handles.meanWake,'string',num2str((sum(handles.allresult(:,8)==3)/60)/(sum(diff([1 handles.allresult(:,8)'==3 1])>0)-1)) );
+
 
     end
 
@@ -1583,3 +1590,15 @@ function offsetDown_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles.boardUI.Plot.OffsetAdjust=handles.boardUI.Plot.OffsetAdjust-1E-5;
  
+
+
+% --- Executes on button press in recomputeHypnogram.
+function recomputeHypnogram_Callback(hObject, eventdata, handles)
+% hObject    handle to recomputeHypnogram (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+allresultUp=recomputeHypnogram(handles.allresult,10^handles.gamma_threshold,10^handles.ratio_threshold);
+handles.allresult=allresultUp;
+guidata(hObject,handles);
+
+
