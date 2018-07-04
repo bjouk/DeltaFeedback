@@ -279,7 +279,6 @@ handles.datablock = rhd2000.datablock.DataBlock(handles.boardUI.Board);
 
 % Tell the board to run continuously
 handles.boardUI.Board.run_continuously();
-handles.boardUI.Plot.triggerArduino(handles.arduino);%Trigger video recording
 %handles.boardUI.Board.DigitalOutputs=zeros(1,16);
 handles.last_status=0;
 

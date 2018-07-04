@@ -225,9 +225,13 @@ classdef BoardUI < handle
             
         end
         function obj=setDigitalOutput(obj, value)
-            obj.Board.DigitalOutputs(9:end)=0;
+            obj.Board.DigitalOutputs(9:11)=0;
             obj.Board.DigitalOutputs(8+value)=1;
         end
+        function obj=setDigitalOutputDelta(obj,value)
+            obj.Board.DigitalOutputs(12)=value;
+        end
+        
         
         function obj=webcaminit(obj,previewWindow)
             obj.Webcam=webcam;

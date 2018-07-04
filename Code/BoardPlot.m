@@ -43,6 +43,7 @@ classdef BoardPlot < handle
         counter_detection
         countermax
         countermax_detection
+        DeltaPoints_counter
         ptperdb %>=1 db:datablock
         
         durationdb
@@ -225,7 +226,7 @@ classdef BoardPlot < handle
             obj.NumChannels = num_channels;
             obj.SaveIndex = 1;
             obj.countermax=4/(1/samplingfreq)/60;  %default refractory time for fire is 4
-            obj.countermax_detection=0.3/(1/samplingfreq)/60; %refractory time for detection is 0.3s
+            obj.countermax_detection=0.15/(1/samplingfreq)/60; %refractory time for detection is 0.3s
             
 
             % We'll display num_channels channels x 2040 time stamps 
@@ -238,6 +239,7 @@ classdef BoardPlot < handle
             obj.Time_real=obj.Timestamps*(1000*60/samplingfreq); %ms
             obj.counter=0;
             obj.counter_detection=0;
+            obj.DeltaPoints_counter = 0;
             
             obj.Math_buffer_to_filter=zeros(1, obj.num_points);
             obj.Math_buffer_filtered=zeros(1, obj.num_points);
@@ -413,16 +415,16 @@ classdef BoardPlot < handle
         %%Test SleepState
         if(obj.threshold_status == 1)
             if(obj.result(1)>10^(obj.gamma_threshold))
-                obj.SleepState=1; %Wake 
+                obj.SleepState=3; %Wake 
                 obj.timerNREM=0;
                 obj.timerREM=0;
             else 
                 if(obj.result(4)>10^(obj.ratio_threshold))
-                     obj.SleepState=3; %REM 
+                     obj.SleepState=2; %REM 
                      obj.timerNREM=0;
                      obj.timerREM=obj.timerREM+1;
                 else
-                    obj.SleepState=2; %NREM
+                    obj.SleepState=1; %NREM
                     obj.timerNREM=obj.timerNREM+1;
                     obj.timerREM=0;
                 end
@@ -539,114 +541,108 @@ classdef BoardPlot < handle
         end
         
         function obj = process_data_block(obj, datablock,arduino,filter_activated)
-        % Called to process a data block; stores the new data in Amplifiers
-        
-            % In either case, we keep a rolling window of the form 
+            % Called to process a data block; stores the new data in Amplifiers
+            
+            % In either case, we keep a rolling window of the form
             % [(existing data) (new datablock)], where the data is always offset so
             % that multiple channels can be overlaid on top of each other
             
             
             %it's a MEAN, which means only the value of the average 60
             %samples in a datablock
-                newdata_original=mean([obj.prefactors(1),0;0,obj.prefactors(2)]*... %matrix multiplication for the prefactors
+            newdata_original=mean([obj.prefactors(1),0;0,obj.prefactors(2)]*... %matrix multiplication for the prefactors
                 datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Channels,:),2);  %the last 2 is a parameter for the mean function
-                newdata_math=newdata_original(1,:)-newdata_original(2,:);
-                newdata_sound=-0.5*ones(1,obj.ptperdb);
-                if filter_activated==1
-                    obj.Math_buffer_to_filter=[obj.Math_buffer_to_filter(2:end) newdata_math];
-                    filtered = filtfilt(obj.DeltaFiltPFC_B,obj.DeltaFiltPFC_A ,obj.Math_buffer_to_filter);
-                    obj.Math_filtered=filtered(end);
-                end
-                    
-                if(obj.stimulateAtRandom & obj.detec_status==1) %stimulate at random
-                    p=0.0001;
-                    if (obj.counter_detection>obj.countermax_detection)
-                        if strcmp(arduino.Status,'open')
-                                    fwrite(arduino,50);
-                        end
-                        if (obj.wait_status==1)&&(obj.fired==0)
-                            if(rand()>(1-p) & obj.counter>obj.countermax)
-                                if strcmp(arduino.Status,'open')
-                                    fwrite(arduino,obj.sound_mode*10+obj.sound_tone);%the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
-                                end
-                                newdata_sound=3*ones(1,obj.ptperdb);
-                                obj.fired=1;
-                                obj.counter=0;
-                                
-                                obj.detected=1;
-                                obj.counter_detection=0;
-                            end
-                        end
-                    end
-                end
-                if (obj.detec_status==1 & (~obj.stimulateDuringNREM & ~obj.stimulateDuringREM & ~obj.stimulateDuringWake)) | (obj.SleepState==2 & obj.stimulateDuringNREM &  obj.detec_status==1) | (obj.SleepState==1 & obj.stimulateDuringREM &  obj.detec_status==1) | (obj.SleepState==3 & obj.stimulateDuringWake &  obj.detec_status==1)% means the user wants to detect the pic
-                    obj.counter=obj.counter+1;  %in initialization it was 0
-                    obj.counter_detection=obj.counter_detection+1;
-                    % the refractory time of the detection
-                    if (obj.counter_detection>obj.countermax_detection) && (obj.wait_status==1)&& (obj.detected==0)
-                        if filter_activated==1
-                            if obj.Math_filtered>=obj.detec_seuil*1e-3
-                                obj.detected=1; 
-                                obj.counter_detection=0;
-                                if strcmp(arduino.Status,'open')
-                                    fwrite(arduino,50);
-                                end
-                            end                            
-                        else
-                            if newdata_math>=obj.detec_seuil*1e-3
-                                obj.detected=1; 
-                                obj.counter_detection=0;
-                                if strcmp(arduino.Status,'open')
-                                    fwrite(arduino,50);
-                                end
-                            end
-                        end
-                    end
-                    
-                    
-                    if obj.counter>obj.countermax %for firing. take into consideration of the refractory time for firing, here means it now ok to proceed (passed the refractory time)                    
-                        if (obj.Math_filtered>=obj.detec_seuil*1e-3 & filter_activated==1) | (newdata_math>=obj.detec_seuil*1e-3 & filter_activated==0)
-                            if (obj.wait_status==1)&&(obj.fired==0)
-                                if strcmp(arduino.Status,'open')
-                                    fwrite(arduino,obj.sound_mode*10+obj.sound_tone);%the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
-                                end
-                                newdata_sound=3*ones(1,obj.ptperdb);
-                                obj.fired=1;
-                                obj.counter=0;
-                                
-                                obj.detected=1;
-                                obj.counter_detection=0;
-                            end
-                        end
-                     end
-                end
-                newdata = newdata_original + obj.Offsets(obj.StoreChannels,1)+[0, obj.OffsetAdjust]';  %%%%%
-                        
- 
-            % inject the data from newdata, newdata_math, newdata_sound to
-            % Amplifiers, Math, and SoundFile. these properties are only for
-            % display purpose.
-            % ATTENTION: we don't inject all the data to these properties,
-            % only take ptperdb(here 1 point) to inject. Otherwise the
-            % display will roll too rapidely in the screen.
-           
-            
-            % Scale to mV, rather than V.
-            obj.Amplifiers(obj.StoreChannels,obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1)) =  newdata*1000; %Injection from newdata to obj.amplifiers
-            obj.Math(obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1))=newdata_math*1000;
-            obj.SoundFile(obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1))=newdata_sound;
+            newdata_math=newdata_original(1,:)-newdata_original(2,:);
+            newdata_sound=-0.5*ones(1,obj.ptperdb);
             if filter_activated==1
-                obj.Math_filtered_display(obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1))=obj.Math_filtered*1000;
+                obj.Math_buffer_to_filter=[obj.Math_buffer_to_filter(2:end) newdata_math];
+                filtered = filtfilt(obj.DeltaFiltPFC_B,obj.DeltaFiltPFC_A ,obj.Math_buffer_to_filter);
+                obj.Math_filtered=filtered(end);
             end
-
-            %obj.Math(obj.SaveIndex:(obj.SaveIndex+59))=newdata_math*1000;
             
-            % And loop SaveIndex, the index into our circular buffer.
-            obj.SaveIndex = obj.SaveIndex + obj.ptperdb; 
-            if obj.SaveIndex > length(obj.Timestamps)
-                obj.SaveIndex = 1;
+            if(obj.stimulateAtRandom & obj.detec_status==1) %stimulate at random
+                p=0.0001;
+                if (obj.counter_detection>obj.countermax_detection)
+                    if strcmp(arduino.Status,'open')
+                        fwrite(arduino,00);
+                    end
+                    if (obj.wait_status==1)&&(obj.fired==0)
+                        if(rand()>(1-p) & obj.counter>obj.countermax)
+                            if strcmp(arduino.Status,'open')
+                                fwrite(arduino,obj.sound_mode*10+obj.sound_tone);%the mode and the sound are sent to the arduino as an integer AB => A is the mode and B is the sound type
+                            end
+                            newdata_sound=3*ones(1,obj.ptperdb);
+                            obj.fired=1;
+                            obj.counter=0;
+                            
+                            obj.detected=1;
+                            obj.counter_detection=0;
+                        end
+                    end
+                end
             end
+            
+            if (obj.detec_status==1 & (~obj.stimulateDuringNREM & ~obj.stimulateDuringREM & ~obj.stimulateDuringWake)) | (obj.SleepState==1 & obj.stimulateDuringNREM &  obj.detec_status==1) | (obj.SleepState==2 & obj.stimulateDuringREM &  obj.detec_status==1) | (obj.SleepState==3 & obj.stimulateDuringWake &  obj.detec_status==1)% means the user wants to detect the pic
+                obj.counter=obj.counter+1;  %in initialization it was 0
+                obj.counter_detection=obj.counter_detection+1;
+                % the refractory time of the detection
+                
+                if (obj.Math_filtered>=obj.detec_seuil*1e-3 & filter_activated==1) | (newdata_math(end)>=obj.detec_seuil*1e-3 & filter_activated==0)
+                    obj.DeltaPoints_counter = obj.DeltaPoints_counter + 1;
+                    
+                elseif obj.DeltaPoints_counter/333.33 > 0.05 && obj.DeltaPoints_counter/333.33 <0.15
+                    if (obj.counter>obj.countermax) && (obj.wait_status==1)&&(obj.fired==0)
+                        disp('good delta wave fired (50ms < duration < 150ms)');
+                        obj.detected=1;
+                        obj.counter=0;
+                        obj.counter_detection=0;
+                        obj.DeltaPoints_counter = 0;
+                        if strcmp(arduino.Status,'open')
+                            fwrite(arduino,obj.sound_mode*10+obj.sound_tone);
+                        end
+                        newdata_sound=3*ones(1,obj.ptperdb);
+                        obj.fired=1;
+                    elseif (obj.counter_detection>obj.countermax_detection) && (obj.wait_status==1) && (obj.detected==0)
+                        disp('good delta wave (50ms < duration < 150ms)');
+                        obj.detected=1;
+                        obj.counter_detection=0;
+                        obj.DeltaPoints_counter = 0;
+                        
+                        if strcmp(arduino.Status,'open')
+                            fwrite(arduino,00);
+                        end
+                    end
+                else
+                    obj.DeltaPoints_counter = 0;
+                end
+            end
+        newdata = newdata_original + obj.Offsets(obj.StoreChannels,1)+[0, obj.OffsetAdjust]';  %%%%%
+        
+        
+        % inject the data from newdata, newdata_math, newdata_sound to
+        % Amplifiers, Math, and SoundFile. these properties are only for
+        % display purpose.
+        % ATTENTION: we don't inject all the data to these properties,
+        % only take ptperdb(here 1 point) to inject. Otherwise the
+        % display will roll too rapidely in the screen.
+        
+        
+        % Scale to mV, rather than V.
+        obj.Amplifiers(obj.StoreChannels,obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1)) =  newdata*1000; %Injection from newdata to obj.amplifiers
+        obj.Math(obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1))=newdata_math*1000;
+        obj.SoundFile(obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1))=newdata_sound;
+        if filter_activated==1
+            obj.Math_filtered_display(obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1))=obj.Math_filtered*1000;
         end
+        
+        %obj.Math(obj.SaveIndex:(obj.SaveIndex+59))=newdata_math*1000;
+        
+        % And loop SaveIndex, the index into our circular buffer.
+        obj.SaveIndex = obj.SaveIndex + obj.ptperdb;
+        if obj.SaveIndex > length(obj.Timestamps)
+            obj.SaveIndex = 1;
+        end
+    end
         
         function obj = clear_data(obj)
         % Zero out obj.Amplifiers and reset.
