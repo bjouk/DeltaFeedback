@@ -216,7 +216,7 @@ classdef BoardUI < handle
         function obj=setChannelsSpectre(obj, file) %Get the mouse channels from a .csv file and use the data 
             paramsArray=readtable(file,'Delimiter',';');
             obj.paramsFile=file;
-            obj.set_thechannels([paramsArray{4,2}+1 paramsArray{5,2}+1]);
+            obj.set_thechannels([paramsArray{5,2}+1 paramsArray{4,2}+1]);
             obj.set_channels();
             obj.Plot.bullchannel=paramsArray{1,2}+1;
             obj.Plot.Deltachannel=paramsArray{2,2}+1;
@@ -225,7 +225,7 @@ classdef BoardUI < handle
             
         end
         function obj=setDigitalOutput(obj, value)
-            obj.Board.DigitalOutputs(9:11)=0;
+            obj.Board.DigitalOutputs(9:end)=0;
             obj.Board.DigitalOutputs(8+value)=1;
         end
         function obj=setDigitalOutputDelta(obj,value)

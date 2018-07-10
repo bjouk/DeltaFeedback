@@ -591,7 +591,7 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
     handles.boardUI.hilbert_process(); 
     handles.boardUI.refreshWebcam(handles.webcam);
     handles.allresult = [handles.allresult;handles.spectre_counter,...
-                           str2double(datestr(handles.spectre_nowtime/24/3600,'HHMMSS')),handles.boardUI.Plot.result,-1,-1];
+                           double(handles.datablock.Timestamps(end)),handles.boardUI.Plot.result,-1,-1];
                        % add the calcualation reslut to the matrices
                        % the last -1 separately means no setting of detection threshold
      handles.boardUI.refresh_phasespace(handles.allresult(:,1),handles.allresult(:,3),handles.allresult(:,6)); 
