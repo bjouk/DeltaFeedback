@@ -51,7 +51,7 @@ classdef BoardUI < handle
     
     methods
         function obj = BoardUI(board, data_plot,sleep_stage,phase_space,gamma_distr,ratio_distr,...
-                              snapshot, chips_popup, channels_popup, fifolag, fifopercentagefull, num_channels)
+                              snapshot, chips_popup, channels_popup, fifolag, fifopercentagefull, num_channels,detections)
         % Constructor
         %
         % board              handle to an rhd2000.Board object
@@ -106,8 +106,8 @@ classdef BoardUI < handle
             obj.Plot.refresh_sleepstage_now (timestamps,sleepstage);
         end
         
-        function detection_number(obj,timestamps,nb_detection)
-            obj.Plot.detection_number_now (timestamps,nb_detection);
+        function detection_number(obj,timestamps,nb_detection,detections)
+            obj.Plot.detection_number_now (timestamps,nb_detection,detections);
         end
         
         function refresh_phasespace (obj,timestamps,gamma,ratio)

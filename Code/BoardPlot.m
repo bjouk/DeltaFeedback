@@ -65,6 +65,7 @@ classdef BoardPlot < handle
         Math_filtered %Stores the output of the filtering of the difference
         Math_filtered_display
         sound_tone %Type of sound played during stimulation
+        Time
 
         % Jingyuan
         hilbert_filter_order % Order of the filter used to filter the signal prior to hilbert transform
@@ -126,6 +127,14 @@ classdef BoardPlot < handle
         
         timerNREM %Timer for last epoch of NREM
         timerREM
+        
+        snakeSize
+        recordingTime
+        maxSleepstages
+        timerDeltaStart
+        timeStartDelta
+        
+        deltaDensity
     end
     
     properties (Access = private, Hidden = false)
@@ -191,9 +200,13 @@ classdef BoardPlot < handle
             obj.detec_seuil=100;
             obj.fired=0;
             obj.detected=0;
+            obj.recordingTime=0;
+            obj.maxSleepstages=0;
             obj.DataPlotAxes = data_plot;
             obj.SpectreWindowSize=3;
             obj.OffsetAdjust=0;
+            obj.timerDeltaStart=tic();
+            obj.timeStartDelta=0;
             obj.SleepStageAxes = sleep_stage; %Jingyuan 
             obj.hilbert_filter_order = 332;
             obj.bullchannel = 12; %Default Bull CHannel is 12
@@ -216,7 +229,7 @@ classdef BoardPlot < handle
             obj.BullData=zeros(1, ceil(obj.samplingfreq/60*obj.SpectreWindowSize));
             obj.ThetaData=zeros(1, ceil(obj.samplingfreq/60*obj.SpectreWindowSize));
             obj.DeltaData=zeros(1, ceil(obj.samplingfreq/60*obj.SpectreWindowSize));
-            
+            obj.deltaDensity=0;
             obj.PhaseSpaceAxes = phase_space; %Jingyuan
             obj.gamma_distributionAxes = gamma_distr;
             obj.ratio_distributionAxes = ratio_distr;
@@ -331,6 +344,7 @@ classdef BoardPlot < handle
             set(gca,'YTick',[]);
             set(obj.PhaseSpaceAxes, 'YLim', [-0.5 2.5]);
             set(obj.PhaseSpaceAxes, 'XLim', [-8 -5.5]);
+            obj.snakeSize=10;
 
             axes(obj.gamma_distributionAxes);
             obj.gamma_distributionLines = plot(0,0);
@@ -433,12 +447,22 @@ classdef BoardPlot < handle
         end
          
          function refresh_sleepstage_now (obj,timestamps,sleepstage)
-             set (obj.SleepStageLinesLeft,'XData',timestamps,'YData',sleepstage);
+             time=timestamps(timestamps<obj.maxSleepstages & timestamps>(obj.maxSleepstages-3600));
+             sleep=sleepstage(timestamps<obj.maxSleepstages & timestamps>(obj.maxSleepstages-3600));
+             time=time(sleep>0);
+             sleep=sleep(sleep>0);
+             %set (obj.SleepStageLinesLeft,'XData',time,'YData',sleep);
+             if length(sleep)>0
+                drawHypnogram(obj.SleepStageAxes,time,sleep);
+             end
+             obj.recordingTime=timestamps(end);
          end
          
-         function detection_number_now (obj,timestamps,nb_detection)
+         function detection_number_now (obj,timestamps,nb_detection,detections)
              set(obj.SleepStageAxes(2),{'XLimMode'},{'auto'});
-             set (obj.SleepStageLinesRight,'XData',timestamps,'YData',nb_detection);
+             set (obj.SleepStageLinesRight,'XData',timestamps(timestamps<obj.maxSleepstages & timestamps>(obj.maxSleepstages-3600)),'YData',smooth(nb_detection(timestamps<obj.maxSleepstages & timestamps>(obj.maxSleepstages-3600))));
+             lastDeltas=detections(detections(:,1)>(detections(end,1)-4E4),:);
+             obj.deltaDensity=sum(lastDeltas(:,1)-lastDeltas(:,2))/4E4;
          end
          
         function refresh_phasespace_now(obj,timestamps,gamma,ratio) 
@@ -459,7 +483,7 @@ classdef BoardPlot < handle
                 ratio(1:indice-1) = [];
             end
             
-            if(length(gamma)>10) %indicate the last 10 points with black snake
+            if(length(gamma)>obj.snakeSize+1) %indicate the last 10 points with black snake
                 if( obj.threshold_status==1)
                     set(obj.PhaseSpaceLines(1),'Color','none');
                     gamma_disp=gamma(3:end);
@@ -478,9 +502,9 @@ classdef BoardPlot < handle
                         end
                     end
                 else
-                    set(obj.PhaseSpaceLines(1),'XData',gamma(3:(end-10)),'YData',ratio(3:(end-10)));
+                    set(obj.PhaseSpaceLines(1),'XData',gamma(3:(end-obj.snakeSize)),'YData',ratio(3:(end-obj.snakeSize)));
                 end
-                set(obj.PhaseSpaceLines(6),'XData',gamma((end-9):end),'YData',ratio((end-9):end));
+                set(obj.PhaseSpaceLines(6),'XData',gamma((end-obj.snakeSize+1):end),'YData',ratio((end-obj.snakeSize+1):end));
                 set(obj.PhaseSpaceLines(2),'XData',gamma(end),'YData',ratio(end));
                 [obj.gamma_prob,obj.gamma_value] = ksdensity (gamma(3:end));
                 [obj.ratio_prob,obj.ratio_value] = ksdensity (ratio(3:end)); 
@@ -554,6 +578,7 @@ classdef BoardPlot < handle
                 datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Channels,:),2);  %the last 2 is a parameter for the mean function
             newdata_math=newdata_original(1,:)-newdata_original(2,:);
             newdata_sound=-0.5*ones(1,obj.ptperdb);
+            newdata_time=datablock.Timestamps;
             if filter_activated==1
                 obj.Math_buffer_to_filter=[obj.Math_buffer_to_filter(2:end) newdata_math];
                 filtered = filtfilt(obj.DeltaFiltPFC_B,obj.DeltaFiltPFC_A ,obj.Math_buffer_to_filter);
@@ -588,9 +613,13 @@ classdef BoardPlot < handle
                 % the refractory time of the detection
                 
                 if (obj.Math_filtered>=obj.detec_seuil*1e-3 & filter_activated==1) | (newdata_math(end)>=obj.detec_seuil*1e-3 & filter_activated==0)
+                    if  obj.DeltaPoints_counter==0
+                        obj.timerDeltaStart=tic();
+                        obj.timeStartDelta=double(obj.Time(end))/20000;
+                    end
                     obj.DeltaPoints_counter = obj.DeltaPoints_counter + 1;
                     
-                elseif obj.DeltaPoints_counter/333.33 > 0.05 && obj.DeltaPoints_counter/333.33 <0.15
+                elseif (toc(obj.timerDeltaStart)> 0.05 && toc(obj.timerDeltaStart) <0.15) && ((double(obj.Time(end))/20000-obj.timeStartDelta)>0.05 && (double(obj.Time(end))/20000-obj.timeStartDelta)<0.15)
                     if (obj.counter>obj.countermax) && (obj.wait_status==1)&&(obj.fired==0)
                         disp('good delta wave fired (50ms < duration < 150ms)');
                         obj.detected=1;
@@ -602,12 +631,13 @@ classdef BoardPlot < handle
                         end
                         newdata_sound=3*ones(1,obj.ptperdb);
                         obj.fired=1;
+                        toc(obj.timerDeltaStart)
                     elseif (obj.counter_detection>obj.countermax_detection) && (obj.wait_status==1) && (obj.detected==0)
                         disp('good delta wave (50ms < duration < 150ms)');
                         obj.detected=1;
                         obj.counter_detection=0;
                         obj.DeltaPoints_counter = 0;
-                        
+                        toc(obj.timerDeltaStart)
                         if strcmp(arduino.Status,'open')
                             fwrite(arduino,00);
                         end
@@ -615,6 +645,7 @@ classdef BoardPlot < handle
                 else
                     obj.DeltaPoints_counter = 0;
                 end
+                
             end
         newdata = newdata_original + obj.Offsets(obj.StoreChannels,1)+[0, obj.OffsetAdjust]';  %%%%%
         
@@ -631,6 +662,7 @@ classdef BoardPlot < handle
         obj.Amplifiers(obj.StoreChannels,obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1)) =  newdata*1000; %Injection from newdata to obj.amplifiers
         obj.Math(obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1))=newdata_math*1000;
         obj.SoundFile(obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1))=newdata_sound;
+        obj.Time=newdata_time;
         if filter_activated==1
             obj.Math_filtered_display(obj.SaveIndex:(obj.SaveIndex+obj.ptperdb-1))=obj.Math_filtered*1000;
         end

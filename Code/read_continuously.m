@@ -47,7 +47,7 @@ function varargout = read_continuously(varargin)
 
 % Edit the above text to modify the response to help read_continuously
 
-% Last Modified by GUIDE v2.5 20-Jun-2018 10:50:12
+% Last Modified by GUIDE v2.5 13-Jul-2018 11:41:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -88,12 +88,13 @@ handles.spectre_lastsave = now*24*3600; % Jingyuan the last time we collect the 
 handles.spectre_lastcal = now*24*3600; % Jingyuan the last time we calculate the spectre density ; the value renew every 3s
 handles.spectre_counter = 0;  % Jingyuan note relative calculation time of the spectre data
 handles.fire_lastcounter = 0; % the number of detection beyond threshold from 0s to (now-3)s
-
+handles.detection_lastcounter=0;
+handles.detections=0;
 
 handles.boardUI = BoardUI(handles.driver.create_board(), ...
                           handles.data_plot,handles.sleep_stage,handles.phase_space, handles.gamma_distribution,...
                           handles.ratio_distribution, handles.snapshot, handles.chips, handles.channels_to_display, ...
-                          handles.FifoLag, handles.FifoPercentageFull,2);  %Jingyuan
+                          handles.FifoLag, handles.FifoPercentageFull,2,handles.detections);  %Jingyuan
 handles.boardUI.Plot.sound_tone = 0; % default sound is tone
   
 handles.saveUI = SaveConfigUI(handles.intan, handles.file_per_signal_type, ...
@@ -283,7 +284,7 @@ handles.boardUI.Board.run_continuously();
 handles.last_status=0;
 
 handles.boardUI.set_channels_chips();
-handles.detections=0;
+
 handles.fires=0;
 handles.last_db_digin=zeros(1,60);
 
@@ -478,20 +479,21 @@ for i=1:handles.chunk_size
         %write to detection matrix
         handles.detection_counter=handles.detection_counter+1;
         handles.detections(handles.detection_counter,1)=double(handles.datablock.Timestamps(1))/frequency(handles.boardUI.Board.SamplingRate)*10000; % en 0.1ms, attention, time stamps is a uint32 number, should be tranformed to double to avoid saturation
-        handles.detections(handles.detection_counter,2)=handles.boardUI.Plot.sound_mode;
-        handles.detections(handles.detection_counter,3)=handles.boardUI.Plot.detec_seuil;
-        handles.detections(handles.detection_counter,4)=handles.boardUI.Plot.prefactors(1);
-        handles.detections(handles.detection_counter,5)=handles.boardUI.Plot.Channels(1);
-        handles.detections(handles.detection_counter,6)=handles.boardUI.Plot.prefactors(2);
-        handles.detections(handles.detection_counter,7)=handles.boardUI.Plot.Channels(2);
+        handles.detections(handles.detection_counter,2)=double(handles.boardUI.Plot.timeStartDelta*20000)/frequency(handles.boardUI.Board.SamplingRate)*10000;
+        handles.detections(handles.detection_counter,3)=handles.boardUI.Plot.sound_mode;
+        handles.detections(handles.detection_counter,4)=handles.boardUI.Plot.detec_seuil;
+        handles.detections(handles.detection_counter,5)=handles.boardUI.Plot.prefactors(1);
+        handles.detections(handles.detection_counter,6)=handles.boardUI.Plot.Channels(1);
+        handles.detections(handles.detection_counter,7)=handles.boardUI.Plot.prefactors(2);
+        handles.detections(handles.detection_counter,8)=handles.boardUI.Plot.Channels(2);
         if handles.filter_activated==1
-            handles.detections(handles.detection_counter,8)=handles.filter_fmin;
-            handles.detections(handles.detection_counter,9)=handles.filter_fmax;
-            handles.detections(handles.detection_counter,10)=handles.filter_order;
+            handles.detections(handles.detection_counter,9)=handles.filter_fmin;
+            handles.detections(handles.detection_counter,10)=handles.filter_fmax;
+            handles.detections(handles.detection_counter,11)=handles.filter_order;
         else
-            handles.detections(handles.detection_counter,8)=0;
             handles.detections(handles.detection_counter,9)=0;
             handles.detections(handles.detection_counter,10)=0;
+            handles.detections(handles.detection_counter,11)=0;
         end
         handles.detections_exist=1;
     end
@@ -591,16 +593,17 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
     handles.boardUI.hilbert_process(); 
     handles.boardUI.refreshWebcam(handles.webcam);
     handles.allresult = [handles.allresult;handles.spectre_counter,...
-                           double(handles.datablock.Timestamps(end)),handles.boardUI.Plot.result,-1,-1];
+                           double(handles.datablock.Timestamps(end)/20000),handles.boardUI.Plot.result,-1,-1];
                        % add the calcualation reslut to the matrices
                        % the last -1 separately means no setting of detection threshold
      handles.boardUI.refresh_phasespace(handles.allresult(:,1),handles.allresult(:,3),handles.allresult(:,6)); 
      %Jingyuan refresh  2D phase space and distribution the 3rd and 7rd column is gamma and theta/delta ratio
         
     if (handles.boardUI.Plot.armed==1) % save the number pf detection beyond the threshold in the past 3s
-        handles.allresult (end,7) = handles.fire_counter-handles.fire_lastcounter;
-        handles.boardUI.detection_number(handles.allresult(:,1),handles.allresult(:,7));
+        handles.allresult(end,7) = handles.detection_counter-handles.detection_lastcounter;
+        handles.boardUI.detection_number(handles.allresult(:,1),handles.allresult(:,7),handles.detections);
         handles.fire_lastcounter = handles.fire_counter;
+        handles.detection_lastcounter=handles.detection_counter;
     end
     
     
@@ -613,7 +616,7 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
         elseif (handles.boardUI.Plot.result(4)>10^(handles.ratio_threshold))
             set (handles.sleepStage,'string','REM');
             set (handles.timerNREM,'string',strcat(num2str(handles.boardUI.Plot.timerREM),'s'));
-            handles.allresult (end,8) = 2; % 2 means REM
+            handles.allresult(end,8) = 2; % 2 means REM
             handles.boardUI.setDigitalOutput(2);
         else
             set (handles.sleepStage,'string','NREM');
@@ -621,9 +624,18 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
             set (handles.timerNREM,'string',strcat(num2str(handles.boardUI.Plot.timerNREM),'s'));
             handles.boardUI.setDigitalOutput(1);
         end
-
+        set(handles.slider2,'Max',handles.boardUI.Plot.recordingTime);
+        if get(handles.slider2,'Value')>handles.boardUI.Plot.recordingTime*0.9
+            set(handles.slider2,'Value',handles.boardUI.Plot.recordingTime);
+        end
+        handles.boardUI.Plot.maxSleepstages = get(handles.slider2, 'Value');
+        if(handles.boardUI.Plot.recordingTime<3600)
+            set(handles.slider2,'SliderStep', [1, 1]);
+        else
+            set(handles.slider2,'SliderStep', [3600/handles.boardUI.Plot.recordingTime, 3600/handles.boardUI.Plot.recordingTime]);
+        end
         handles.boardUI.refresh_sleepstage(handles.allresult(:,1),handles.allresult(:,8)); % draw the hyponogram
-        
+        set(handles.deltaDensity,'string',num2str(handles.boardUI.Plot.deltaDensity));
         
         set (handles.text75,'string',num2str(sum(handles.allresult(:,8)==1)/60,'%.2f'   ));
         set (handles.text77,'string',num2str( 100 * sum(handles.allresult(:,8)==1) / nnz(handles.allresult(:,8)+1),'%.2f' ) );
@@ -1398,6 +1410,8 @@ function pushbutton18_Callback(hObject, eventdata, handles) %Jingyuan OK button 
 % hObject    handle to pushbutton18 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+ handles.ratio_threshold=(str2double(get(handles.thetaDeltaThreshold,'String')));
+ handles.gamma_threshold=(str2double(get(handles.gammaThreshold,'String')));
 handles.boardUI.Plot.threshold_status = 1;
 handles.boardUI.set_thethreshold(handles.gamma_threshold,handles.ratio_threshold);
 
@@ -1436,6 +1450,8 @@ set(handles.edit5,'String',handles.boardUI.Plot.Channels(1)-1);
 set(handles.edit6,'String',handles.boardUI.Plot.Channels(2)-1);
 set(handles.thetaDeltaThreshold,'String',handles.boardUI.Plot.ratio_threshold);
 set(handles.gammaThreshold,'String',handles.boardUI.Plot.gamma_threshold);
+handles.boardUI.Plot.set_thethreshold_now(handles.boardUI.Plot.gamma_threshold,handles.boardUI.Plot.ratio_threshold);
+
 
 
 
@@ -1617,3 +1633,28 @@ handles.allresult=allresultUp;
 guidata(hObject,handles);
 
 
+
+
+% --- Executes on slider movement.
+function slider2_Callback(hObject, eventdata, handles)
+% hObject    handle to slider2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+handles.boardUI.Plot.maxSleepstages = get(hObject, 'Value'); 
+
+
+% --- Executes during object creation, after setting all properties.
+function slider2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to slider2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+set(hObject,'Max',eps);
+set(hObject,'SliderStep', [eps, eps]);
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
