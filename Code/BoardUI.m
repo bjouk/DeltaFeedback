@@ -15,6 +15,7 @@ classdef BoardUI < handle
     properties
         Board         % Handle of an rhd2000.Board
         Plot
+        paramsFile
     end
     
     properties (Access = private)
@@ -43,7 +44,7 @@ classdef BoardUI < handle
         Plot2 %Kejian
         ChipIndex %Kejian
         FilterDef %Kejian
-        paramsFile
+        
         Webcam
         MaskWebcam
         previewWindow
@@ -214,7 +215,7 @@ classdef BoardUI < handle
             end
         end
         function obj=setChannelsSpectre(obj, file) %Get the mouse channels from a .csv file and use the data 
-            paramsArray=readtable(file,'Delimiter',';');
+            paramsArray=readtable(file,'Delimiter',';','Format', '%s%f');
             obj.paramsFile=file;
             obj.set_thechannels([paramsArray{5,2}+1 paramsArray{4,2}+1]);
             obj.set_channels();

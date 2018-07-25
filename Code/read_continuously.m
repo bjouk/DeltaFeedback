@@ -47,7 +47,7 @@ function varargout = read_continuously(varargin)
 
 % Edit the above text to modify the response to help read_continuously
 
-% Last Modified by GUIDE v2.5 13-Jul-2018 11:41:57
+% Last Modified by GUIDE v2.5 25-Jul-2018 10:22:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -129,12 +129,10 @@ set(handles.edit14,'Enable','off');
 
 %filter
 set(handles.filter_order_edit,'Enable','off');
-set(handles.filter_fmin_edit,'Enable','off');
 set(handles.filter_fmax_edit,'Enable','off');
 set(handles.pushbutton_apply_filter,'Enable','off');
 set(handles.checkbox11,'Enable','off');
 handles.filter_order=str2num(get(handles.filter_order_edit,'String'));
-handles.filter_fmin=str2num(get(handles.filter_fmin_edit,'String'));
 handles.filter_fmax=str2num(get(handles.filter_fmax_edit,'String'));
 
 set(handles.edit11,'Enable','off');
@@ -478,26 +476,26 @@ for i=1:handles.chunk_size
     if handles.boardUI.Plot.detected==1       
         %write to detection matrix
         handles.detection_counter=handles.detection_counter+1;
-        handles.detections(handles.detection_counter,1)=double(handles.datablock.Timestamps(1))/frequency(handles.boardUI.Board.SamplingRate)*10000; % en 0.1ms, attention, time stamps is a uint32 number, should be tranformed to double to avoid saturation
+        handles.detections(handles.detection_counter,1)=double(handles.datablock.Timestamps(end))/frequency(handles.boardUI.Board.SamplingRate)*10000; % en 0.1ms, attention, time stamps is a uint32 number, should be tranformed to double to avoid saturation
         handles.detections(handles.detection_counter,2)=double(handles.boardUI.Plot.timeStartDelta*20000)/frequency(handles.boardUI.Board.SamplingRate)*10000;
-        handles.detections(handles.detection_counter,3)=handles.boardUI.Plot.sound_mode;
-        handles.detections(handles.detection_counter,4)=handles.boardUI.Plot.detec_seuil;
-        handles.detections(handles.detection_counter,5)=handles.boardUI.Plot.prefactors(1);
-        handles.detections(handles.detection_counter,6)=handles.boardUI.Plot.Channels(1);
-        handles.detections(handles.detection_counter,7)=handles.boardUI.Plot.prefactors(2);
-        handles.detections(handles.detection_counter,8)=handles.boardUI.Plot.Channels(2);
+        handles.detections(handles.detection_counter,3)=sum(handles.detections(handles.detections(:,1)>(handles.detections(end,1)-4E4),1)-handles.detections(handles.detections(:,1)>(handles.detections(end,1)-4E4),2))/4E4;
+        handles.detections(handles.detection_counter,4)=handles.boardUI.Plot.sound_mode;
+        handles.detections(handles.detection_counter,5)=handles.boardUI.Plot.detec_seuil;
+        handles.detections(handles.detection_counter,6)=handles.boardUI.Plot.prefactors(1);
+        handles.detections(handles.detection_counter,7)=handles.boardUI.Plot.Channels(1);
+        handles.detections(handles.detection_counter,8)=handles.boardUI.Plot.prefactors(2);
+        handles.detections(handles.detection_counter,9)=handles.boardUI.Plot.Channels(2);
         if handles.filter_activated==1
-            handles.detections(handles.detection_counter,9)=handles.filter_fmin;
-            handles.detections(handles.detection_counter,10)=handles.filter_fmax;
-            handles.detections(handles.detection_counter,11)=handles.filter_order;
+            handles.detections(handles.detection_counter,10)=0;
+            handles.detections(handles.detection_counter,11)=handles.filter_fmax;
+            handles.detections(handles.detection_counter,12)=handles.filter_order;
         else
-            handles.detections(handles.detection_counter,9)=0;
             handles.detections(handles.detection_counter,10)=0;
             handles.detections(handles.detection_counter,11)=0;
+            handles.detections(handles.detection_counter,12)=0;
         end
         handles.detections_exist=1;
     end
-    %filterF_fmin=handles.filter_fmin;  %default value in frequency
     %filterF_fmax=handles.filter_fmax;    %default value in frequency
     
     %write to fires matrix in workspace 
@@ -511,7 +509,7 @@ for i=1:handles.chunk_size
         handles.fires(handles.fire_counter,6)=handles.boardUI.Plot.prefactors(2);
         handles.fires(handles.fire_counter,7)=handles.boardUI.Plot.Channels(2);
         if handles.filter_activated==1
-            handles.fires(handles.fire_counter,8)=handles.filter_fmin;
+            handles.fires(handles.fire_counter,8)=0;
             handles.fires(handles.fire_counter,9)=handles.filter_fmax;
             handles.fires(handles.fire_counter,10)=2000/(2*pi*handles.filter_fmax);
         else
@@ -536,7 +534,7 @@ for i=1:handles.chunk_size
     end
     
     %snapshot
-    if handles.boardUI.Plot.counter==handles.boardUI.Plot.nbrdbaft  %wait until sufficient datablock after the event
+    if (handles.boardUI.Plot.counter==handles.boardUI.Plot.nbrdbaft) | (handles.boardUI.Plot.counter_detection==handles.boardUI.Plot.nbrdbaft)  %wait until sufficient datablock after the event
         handles.boardUI.Plot.refresh_snapshot();
     end
     
@@ -593,7 +591,7 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
     handles.boardUI.hilbert_process(); 
     handles.boardUI.refreshWebcam(handles.webcam);
     handles.allresult = [handles.allresult;handles.spectre_counter,...
-                           double(handles.datablock.Timestamps(end)/20000),handles.boardUI.Plot.result,-1,-1];
+                           double(handles.datablock.Timestamps(end))/20000,handles.boardUI.Plot.result,-1,-1];
                        % add the calcualation reslut to the matrices
                        % the last -1 separately means no setting of detection threshold
      handles.boardUI.refresh_phasespace(handles.allresult(:,1),handles.allresult(:,3),handles.allresult(:,6)); 
@@ -608,19 +606,19 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
     
     
     if (handles.boardUI.Plot.threshold_status == 1)
-        if (handles.boardUI.Plot.result(1)>10^(handles.gamma_threshold))% show the sleepstage on screen
+        if handles.boardUI.Plot.SleepState==3% show the sleepstage on screen
             set (handles.sleepStage,'string','Wake');
             set (handles.timerNREM,'string','');
-            handles.allresult (end,8) = 3; % 3 means Wake
+            handles.allresult (end,9) = 3; % 3 means Wake
             handles.boardUI.setDigitalOutput(3);
-        elseif (handles.boardUI.Plot.result(4)>10^(handles.ratio_threshold))
+        elseif handles.boardUI.Plot.SleepState==2%
             set (handles.sleepStage,'string','REM');
             set (handles.timerNREM,'string',strcat(num2str(handles.boardUI.Plot.timerREM),'s'));
-            handles.allresult(end,8) = 2; % 2 means REM
+            handles.allresult(end,9) = 2; % 2 means REM
             handles.boardUI.setDigitalOutput(2);
-        else
+        elseif handles.boardUI.Plot.SleepState==1%
             set (handles.sleepStage,'string','NREM');
-            handles.allresult (end,8) = 1;% 1 means SWS
+            handles.allresult (end,9) = 1;% 1 means SWS
             set (handles.timerNREM,'string',strcat(num2str(handles.boardUI.Plot.timerNREM),'s'));
             handles.boardUI.setDigitalOutput(1);
         end
@@ -634,21 +632,21 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
         else
             set(handles.slider2,'SliderStep', [3600/handles.boardUI.Plot.recordingTime, 3600/handles.boardUI.Plot.recordingTime]);
         end
-        handles.boardUI.refresh_sleepstage(handles.allresult(:,1),handles.allresult(:,8)); % draw the hyponogram
+        handles.boardUI.refresh_sleepstage(handles.allresult(:,1),handles.allresult(:,9)); % draw the hyponogram
         set(handles.deltaDensity,'string',num2str(handles.boardUI.Plot.deltaDensity));
         
-        set (handles.text75,'string',num2str(sum(handles.allresult(:,8)==1)/60,'%.2f'   ));
-        set (handles.text77,'string',num2str( 100 * sum(handles.allresult(:,8)==1) / nnz(handles.allresult(:,8)+1),'%.2f' ) );
-        set (handles.numberNREM,'string',num2str(sum(diff([1 handles.allresult(:,8)'==1 1])>0)-1) );
-        set (handles.meanNREM,'string',num2str((sum(handles.allresult(:,8)==1))/(sum(diff([1 handles.allresult(:,8)'==1 1])>0)-1)) );
-        set (handles.text80,'string',num2str(sum(handles.allresult(:,8)==2)/60,'%.2f'));
-        set (handles.text81,'string',num2str( 100 * sum(handles.allresult(:,8)==2) / nnz(handles.allresult(:,8)+1),'%.2f' ) );
-        set (handles.numberREM,'string',num2str(sum(diff([1 handles.allresult(:,8)'==2 1])>0)-1) );
-        set (handles.meanREM,'string',num2str((sum(handles.allresult(:,8)==2))/(sum(diff([1 handles.allresult(:,8)'==2 1])>0)-1)) );
-        set (handles.text82,'string',num2str(sum(handles.allresult(:,8)==3)/60,'%.2f'));
-        set (handles.text83,'string',num2str( 100 * sum(handles.allresult(:,8)==3) / nnz(handles.allresult(:,8)+1),'%.2f' ) );
-        set (handles.numberWake,'string',num2str(sum(diff([1 handles.allresult(:,8)'==3 1])>0)-1) );
-        set (handles.meanWake,'string',num2str((sum(handles.allresult(:,8)==3))/(sum(diff([1 handles.allresult(:,8)'==3 1])>0)-1)) );
+        set (handles.text75,'string',num2str(sum(handles.allresult(:,9)==1)/60,'%.2f'   ));
+        set (handles.text77,'string',num2str( 100 * sum(handles.allresult(:,9)==1) / nnz(handles.allresult(:,9)+1),'%.2f' ) );
+        set (handles.numberNREM,'string',num2str(sum(diff([1 handles.allresult(:,9)'==1 1])>0)-1) );
+        set (handles.meanNREM,'string',num2str((sum(handles.allresult(:,9)==1))/(sum(diff([1 handles.allresult(:,9)'==1 1])>0)-1)) );
+        set (handles.text80,'string',num2str(sum(handles.allresult(:,9)==2)/60,'%.2f'));
+        set (handles.text81,'string',num2str( 100 * sum(handles.allresult(:,9)==2) / nnz(handles.allresult(:,9)+1),'%.2f' ) );
+        set (handles.numberREM,'string',num2str(sum(diff([1 handles.allresult(:,9)'==2 1])>0)-1) );
+        set (handles.meanREM,'string',num2str((sum(handles.allresult(:,9)==2))/(sum(diff([1 handles.allresult(:,9)'==2 1])>0)-1)) );
+        set (handles.text82,'string',num2str(sum(handles.allresult(:,9)==3)/60,'%.2f'));
+        set (handles.text83,'string',num2str( 100 * sum(handles.allresult(:,9)==3) / nnz(handles.allresult(:,9)+1),'%.2f' ) );
+        set (handles.numberWake,'string',num2str(sum(diff([1 handles.allresult(:,9)'==3 1])>0)-1) );
+        set (handles.meanWake,'string',num2str((sum(handles.allresult(:,9)==3))/(sum(diff([1 handles.allresult(:,9)'==3 1])>0)-1)) );
 
 
     end
@@ -1255,13 +1253,11 @@ function checkbox_online_filter_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 if get(hObject,'Value')==1
     set(handles.filter_order_edit,'Enable','on');
-    set(handles.filter_fmin_edit,'Enable','on');
     set(handles.filter_fmax_edit,'Enable','on');
     set(handles.pushbutton_apply_filter,'Enable','on');
 else
     handles.filter_activated=0;
     set(handles.filter_order_edit,'Enable','off');
-    set(handles.filter_fmin_edit,'Enable','off');
     set(handles.filter_fmax_edit,'Enable','off');
     set(handles.pushbutton_apply_filter,'Enable','off');
     set(handles.checkbox11,'Enable','off');
@@ -1317,27 +1313,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-function filter_fmin_edit_Callback(hObject, eventdata, handles)
-% hObject    handle to filter_fmin_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of filter_fmin_edit as text
-%        str2double(get(hObject,'String')) returns contents of filter_fmin_edit as a double
-handles.filter_fmin=str2double(get(hObject,'String'));
-guidata(hObject,handles);
-
-% --- Executes during object creation, after setting all properties.
-function filter_fmin_edit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to filter_fmin_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 % --- Executes on button press in pushbutton_apply_filter.
 function pushbutton_apply_filter_Callback(hObject, eventdata, handles)
@@ -1346,11 +1322,10 @@ function pushbutton_apply_filter_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-filterF_fmin=handles.filter_fmin;  %default value in frequency
 filterF_fmax=handles.filter_fmax;    %default value in frequency
 filterF_order=handles.filter_order;    %default value in frequency
 handles.filter_activated=1;
-handles.boardUI.Plot.DeltaPFC_filterdesign(filterF_order,filterF_fmin,filterF_fmax);
+handles.boardUI.Plot.DeltaPFC_filterdesign(filterF_order,filterF_fmax);
 set(handles.checkbox11,'Enable','on');
 set(handles.checkbox11,'Value',1);
 handles.boardUI.Plot.DataPlotLines(6).Visible='on';
@@ -1410,8 +1385,8 @@ function pushbutton18_Callback(hObject, eventdata, handles) %Jingyuan OK button 
 % hObject    handle to pushbutton18 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
- handles.ratio_threshold=(str2double(get(handles.thetaDeltaThreshold,'String')));
- handles.gamma_threshold=(str2double(get(handles.gammaThreshold,'String')));
+handles.ratio_threshold=(str2double(get(handles.thetaDeltaThreshold,'String')));
+handles.gamma_threshold=(str2double(get(handles.gammaThreshold,'String')));
 handles.boardUI.Plot.threshold_status = 1;
 handles.boardUI.set_thethreshold(handles.gamma_threshold,handles.ratio_threshold);
 
@@ -1599,27 +1574,34 @@ function openNeuroscope_Callback(hObject, eventdata, handles)
 % hObject    handle to openNeuroscope (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+try
+    path=strsplit(handles.boardUI.paramsFile,filesep);
+    mouseName=strsplit(path{end},'.');
+    mouseName=mouseName{1};
+    path=fullfile(path{1:end-1},'Neuroscope',mouseName);
+    copyfile(path,handles.pathandname);
+end
 winopen(handles.pathandname);
 
 
 
-% --- Executes on button press in offsetUp.
-function offsetUp_Callback(hObject, eventdata, handles)
-% hObject    handle to offsetUp (see GCBO)
+% --- Executes on button press in offsetUpSup.
+function offsetUpSup_Callback(hObject, eventdata, handles)
+% hObject    handle to offsetUpSup (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.boardUI.Plot.OffsetAdjust=handles.boardUI.Plot.OffsetAdjust+1E-5;
+handles.boardUI.Plot.OffsetAdjustSup=handles.boardUI.Plot.OffsetAdjustSup+1E-5;
 
 
 
 
 
-% --- Executes on button press in offsetDown.
-function offsetDown_Callback(hObject, eventdata, handles)
-% hObject    handle to offsetDown (see GCBO)
+% --- Executes on button press in offsetDownSup.
+function offsetDownSup_Callback(hObject, eventdata, handles)
+% hObject    handle to offsetDownSup (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.boardUI.Plot.OffsetAdjust=handles.boardUI.Plot.OffsetAdjust-1E-5;
+handles.boardUI.Plot.OffsetAdjustSup=handles.boardUI.Plot.OffsetAdjustSup-1E-5;
  
 
 
@@ -1658,3 +1640,92 @@ set(hObject,'SliderStep', [eps, eps]);
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+
+
+% --- Executes on button press in changeChannels.
+function changeChannels_Callback(hObject, eventdata, handles)
+% hObject    handle to changeChannels (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.boardUI.Plot.bullchannel=str2num(get(handles.bullChannelText,'String'))+1;
+handles.boardUI.Plot.Thetachannel=str2num(get(handles.thetaChannelText,'String'))+1;
+
+
+% --- Executes on button press in offsetUpDeep.
+function offsetUpDeep_Callback(hObject, eventdata, handles)
+handles.boardUI.Plot.OffsetAdjustDeep=handles.boardUI.Plot.OffsetAdjustDeep+1E-5;
+% hObject    handle to offsetUpDeep (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in offsetDownDeep.
+function offsetDownDeep_Callback(hObject, eventdata, handles)
+handles.boardUI.Plot.OffsetAdjustDeep=handles.boardUI.Plot.OffsetAdjustDeep-1E-5;
+% hObject    handle to offsetDownDeep (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in computeTransitions.
+function computeTransitions_Callback(hObject, eventdata, handles)
+% hObject    handle to computeTransitions (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+computeTransitions(handles.allresult(:,9));
+
+% --- Executes during object creation, after setting all properties.
+function Min_Delta_Duration_Edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Min_Delta_Duration_Edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function Max_Delta_Duration_Edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Max_Delta_Duration_Edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes on button press in Apply_Delta_Duration_push.
+function Apply_Delta_Duration_push_Callback(hObject, eventdata, handles)
+% hObject    handle to Apply_Delta_Duration_push (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.boardUI.Plot.minDuration = str2num(get(Min_Delta_Duration_Edit,'String'))/1000;
+handles.boardUI.Plot.maxDuration = str2num(get(Max_Delta_Duration_Edit,'String'))/1000;
+
+
+% --- Executes on button press in createEvt.
+function createEvt_Callback(hObject, eventdata, handles)
+% hObject    handle to createEvt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%extension evt
+extens = 'det'; %detection
+
+%filename
+filename = 'onlinedelta';
+
+%evt
+evt.time = handles.detections(:,1)/1E4; %in sec
+for i=1:length(evt.time)
+    evt.description{i}= 'online_delta';
+end
+
+%create file
+CreateEvent(evt, filename, extens);
+
+
