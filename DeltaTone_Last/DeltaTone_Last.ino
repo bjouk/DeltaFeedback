@@ -49,7 +49,7 @@ void loop(){
   // ---------------------------------------------------------------------------
   if (Serial.available() >0){
     order=Serial.read();
-    if(order>=10 && order<70){
+    if(order>=00 && order<70){
       sound=order%10;// sound is the unit of the serial reading
       order=order/10;// order is the decade of the serial reading
     }
@@ -75,11 +75,6 @@ void loop(){
     }
     
     if (order==1){
-    //digitalWrite(30,HIGH);    //TDT
-    //digitalWrite(23,HIGH);    //Intan       
-    //delay(10);
-    //digitalWrite(30,LOW);     //TDT
-    //digitalWrite(23,LOW);     //Intan
     
     digitalWrite(27,HIGH);    //Intan event      
     delay(10);

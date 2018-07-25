@@ -1727,5 +1727,6 @@ end
 
 %create file
 CreateEvent(evt, filename, extens);
+movefile('onlinedelta.evt.det',handles.pathandname);
 
 
