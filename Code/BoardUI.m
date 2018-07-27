@@ -202,10 +202,12 @@ classdef BoardUI < handle
         end
   
         function obj=set_thechannels(obj,TheChannels) %Kejian
+            %% Set PFC Channels
             obj.TheChannels=TheChannels;
         end
 
         function obj=set_thethreshold (obj,gamma_threshold,ratio_threshold)
+            %% Set the sleep scoring thresholds
             obj.Plot.set_thethreshold_now(gamma_threshold,ratio_threshold);
             if ~isempty(obj.paramsFile)
                 paramsArray=readtable(obj.paramsFile,'Delimiter',';');
@@ -214,7 +216,8 @@ classdef BoardUI < handle
                 writetable(paramsArray,obj.paramsFile,'Delimiter',';');
             end
         end
-        function obj=setChannelsSpectre(obj, file) %Get the mouse channels from a .csv file and use the data 
+        function obj=setChannelsSpectre(obj, file) %
+            %% Get the mouse channels from a .csv file and use the data: Important to keep the same order for the parameters
             paramsArray=readtable(file,'Delimiter',';','Format', '%s%f');
             obj.paramsFile=file;
             obj.set_thechannels([paramsArray{5,2}+1 paramsArray{4,2}+1]);
@@ -226,31 +229,31 @@ classdef BoardUI < handle
             
         end
         function obj=setDigitalOutput(obj, value)
+            %% Set intan digital output to indicate sleepstate
             obj.Board.DigitalOutputs(9:end)=0;
             obj.Board.DigitalOutputs(8+value)=1;
-        end
-        function obj=setDigitalOutputDelta(obj,value)
-            obj.Board.DigitalOutputs(12)=value;
         end
         
         
         function obj=webcaminit(obj,previewWindow)
+            %% Init the webcam interface and get first snapshot
             obj.Webcam=webcam;
-            obj.Webcam.Resolution='320x240';
+            obj.Webcam.Resolution='320x240'; %small resolution
             previewWeb = snapshot(obj.Webcam);
-            previewWeb=previewWeb(40:125,41:241);
+            previewWeb=previewWeb(40:125,41:241); %Get snaphshot with mask
             set(previewWindow,'Units','pixels');
             resizePos = get(previewWindow,'Position');
-            previewWeb= imresize(previewWeb, [resizePos(3) resizePos(3)]);
+            previewWeb= imresize(previewWeb, [resizePos(3) resizePos(3)]);%% Resize to fit the axes
             imshow(previewWeb,'Parent', previewWindow);
         end
         
         function obj=refreshWebcam(obj,previewWindow)
+            %% Refresh webcam snapshot
             previewWeb = snapshot(obj.Webcam);
             previewWeb=previewWeb(40:125,41:241,:);
             set(previewWindow,'Units','pixels');
             resizePos = get(previewWindow,'Position');
-            previewWeb= imresize(previewWeb, [resizePos(3) resizePos(3)]);
+            previewWeb= imresize(previewWeb, [resizePos(3) resizePos(3)]); %% Resize to fit the axes
             imshow(previewWeb,'Parent', previewWindow);
         end   
     end

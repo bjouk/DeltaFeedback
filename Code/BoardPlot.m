@@ -32,7 +32,7 @@ classdef BoardPlot < handle
         detec_seuil
         sound_mode
         armed
-        
+        deltaDensity
         
         SoundFile
         ThresholdFile
@@ -58,7 +58,8 @@ classdef BoardPlot < handle
         prefactors %Prefactors for the substraction of the cortex signals
         
         Timestamps
-        
+        %Kejian, substraction
+        Math
         Time_real
         Math_buffer_to_filter % a public property, cause needs to be created when click the filter "Apply"
         Math_buffer_filtered % buffer for IIR filter
@@ -71,9 +72,7 @@ classdef BoardPlot < handle
 
         % Jingyuan
         hilbert_filter_order % Order of the filter used to filter the signal prior to hilbert transform
-         
-        coeff_Spectremax 
-        
+                 
         coeff_bullfmin % Minimal frequency of Gamma oscillations
         coeff_bullfmax  % Maximal frequency of Gamma oscillations
         bullchannel %Channel used to get gamma oscillations
@@ -131,6 +130,7 @@ classdef BoardPlot < handle
         
         timerNREM %Timer for last epoch of NREM
         timerREM
+        timerWake
         
         snakeSize
         recordingTime
@@ -142,7 +142,6 @@ classdef BoardPlot < handle
         minDuration
         maxDuration
         
-        deltaDensity
         SleepState %SleepState At the moment
         
         % We'll implement a circular queue of data in Amplifiers; 
@@ -165,8 +164,7 @@ classdef BoardPlot < handle
         % Amplifier data for plotting        
         Amplifiers
         
-        %Kejian, substraction
-        Math
+        
         
         % Offsets for the various amplifiers, for plotting        
         Offsets
@@ -214,37 +212,42 @@ classdef BoardPlot < handle
             obj.detected=0;
             obj.recordingTime=0;
             obj.maxSleepstages=0;
-            obj.DataPlotAxes = data_plot;
-            obj.SpectreWindowSize=3;
-            obj.OffsetAdjustSup=0;
-            obj.OffsetAdjustDeep=0;
-            obj.timerDeltaStart=tic();
-            obj.timeStartDelta=0;
-            obj.SleepStageAxes = sleep_stage; %Jingyuan 
-            obj.hilbert_filter_order = 332;
-            obj.bullchannel = 12; %Default Bull CHannel is 12
-            obj.coeff_bullfmin = 50;
-            obj.coeff_bullfmax = 70;
-            obj.Thetachannel = 16;
-            obj.coeff_Thetafmin = 5;
-            obj.coeff_Thetafmax = 10;
-            obj.Deltachannel = 16;
-            obj.coeff_Deltafmin = 2;
-            obj.coeff_Deltafmax = 5;
-            obj.coeff_Spectremax = 100;
-            obj.samplingfreq=samplingfreq;
+            obj.DataPlotAxes = data_plot; %Axes for plotting signals
+            obj.SpectreWindowSize=3; % Duration of the sleep scoring time window
+            obj.OffsetAdjustSup=0; % Offset of PFCsup for display adjusted by a click on button
+            obj.OffsetAdjustDeep=0;% Offset of PFCDeep for display adjusted by a click on button
+            obj.timerDeltaStart=tic(); %Time of the beginning of the delta wave
+            obj.timeStartDelta=0; %Timestamp beginning of the delta wave
+            obj.SleepStageAxes = sleep_stage; % Axes of the hypnogram 
+            obj.hilbert_filter_order = 332; %order of the sleep scoring filters
+            obj.bullchannel = 12; %Channel of the bulb signal
+            obj.coeff_bullfmin = 50; %Fmin for OB gamma
+            obj.coeff_bullfmax = 70;%Fmax for OB gamma
+            obj.Thetachannel = 16; %Hippocamp channel
+            obj.coeff_Thetafmin = 5;%Fmin for theta
+            obj.coeff_Thetafmax = 10;%Fmax for theta
+            obj.Deltachannel = 16;%Hippocamp channel
+            obj.coeff_Deltafmin = 2;%Fmin for delta
+            obj.coeff_Deltafmax = 5;%Fmax for delta
+            
+            obj.samplingfreq=samplingfreq; %Sampling frequency, usually 20 000Hz
+            
+            %%Filters for sleep scoring
             obj.bullFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',obj.coeff_bullfmin,'CutoffFrequency2',obj.coeff_bullfmax,'SampleRate',obj.samplingfreq/60);
             obj.ThetaFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',obj.coeff_Thetafmin,'CutoffFrequency2',obj.coeff_Thetafmax,'SampleRate',obj.samplingfreq/60);           
             obj.DeltaFilt = designfilt('bandpassfir','FilterOrder',obj.hilbert_filter_order,'CutoffFrequency1',obj.coeff_Deltafmin,'CutoffFrequency2',obj.coeff_Deltafmax,'SampleRate',obj.samplingfreq/60);            
+            %% results of the sleep scoring process
             obj.result = [];
             obj.timerNREM=0;
+            obj.timerWake=0;
+            
             %Setting up the spectrum analysis variables
             obj.BullData=zeros(1, ceil(obj.samplingfreq/60*obj.SpectreWindowSize));
             obj.ThetaData=zeros(1, ceil(obj.samplingfreq/60*obj.SpectreWindowSize));
             obj.DeltaData=zeros(1, ceil(obj.samplingfreq/60*obj.SpectreWindowSize));
             obj.DeltaPFCData=zeros(1, ceil(obj.samplingfreq/60*obj.SpectreWindowSize));
-            obj.deltaDensity=0;
-            obj.PhaseSpaceAxes = phase_space; %Jingyuan
+                        
+            obj.PhaseSpaceAxes = phase_space; %Phase space axes
             obj.gamma_distributionAxes = gamma_distr;
             obj.ratio_distributionAxes = ratio_distr;
             
@@ -253,7 +256,7 @@ classdef BoardPlot < handle
             obj.NumChannels = num_channels;
             obj.SaveIndex = 1;
             obj.countermax=4/(1/samplingfreq)/60;  %default refractory time for fire is 4
-            obj.countermax_detection=0.15/(1/samplingfreq)/60; %refractory time for detection is 0.3s
+            obj.countermax_detection=0.15/(1/samplingfreq)/60; %refractory time for detection is 0.15s
             
 
             % We'll display num_channels channels x 2040 time stamps 
@@ -270,13 +273,14 @@ classdef BoardPlot < handle
             obj.minDuration = 0.05;
             obj.maxDuration = 0.15;
             
+            %% Delta detection filtering
             obj.Math_buffer_to_filter=zeros(1, obj.num_points);
             obj.Math_buffer_filtered=zeros(1, obj.num_points);
             obj.Math_filtered=0;
             [b,a]=butter(2,8/(samplingfreq/(2*60)));
             obj.DeltaFiltPFC_B=b;
             obj.DeltaFiltPFC_A=a;
-            
+            %% Signals to plot
             obj.Amplifiers = zeros(num_channels, obj.num_points); %pas de voies inutiles
             obj.Math = zeros(1, obj.num_points);
             obj.Math_filtered_display = zeros(1, obj.num_points);
@@ -284,18 +288,20 @@ classdef BoardPlot < handle
             obj.DeltaStart=zeros(1, obj.num_points)-0.5*ones(1,obj.num_points);
             obj.DeltaEnd=zeros(1, obj.num_points)-0.5*ones(1,obj.num_points);
             obj.ThresholdFile=zeros(1,obj.num_points);
+            %% Configuration of the snapshot window
             obj.durationdb=60/samplingfreq;
             obj.durationbf=0.300; %s for showing the snapshot. the time before the detection to show
-            obj.durationaft=0.500; %s
+            obj.durationaft=0.500; %s time
             obj.nbrptbf=ceil(obj.durationbf*obj.ptperdb/obj.durationdb);
             obj.nbrdbaft=ceil(obj.durationaft/obj.durationdb);
             obj.nbrptaft=ceil(obj.durationaft*obj.ptperdb/obj.durationdb);
-            
+            %% Stimulate during specific sleepstage
             obj.stimulateDuringNREM=false;
             obj.stimulateDuringREM=false;
             obj.stimulateDuringWake=false;
             obj.stimulateAtRandom=false;
             
+            %% Save index of the start and end of the detected delta wave => used for display in snapshot
             obj.saveIndexStartDelta=0;
             obj.saveIndexEndDelta=0;
             
@@ -371,8 +377,7 @@ classdef BoardPlot < handle
             obj.snakeSize=10;
 
             axes(obj.gamma_distributionAxes);
-            obj.gamma_distributionLines = plot([0],[0],[0],[0]);
-            set(obj.gamma_distributionLines(2),'Marker','+','MarkerSize',20,'Color',[0 0 0],'MarkerFaceColor',[0 0 0]);
+            obj.gamma_distributionLines = plot([0],[0]);
             set(gca,'YTick',[]);
             a = gca;
             l = get(a, 'XLabel');
@@ -381,8 +386,7 @@ classdef BoardPlot < handle
             set(obj.gamma_distributionAxes, 'XLim', [-8 -4]);
                         
             axes(obj.ratio_distributionAxes);
-            obj.ratio_distributionLines = plot([0],[0],[0],[0],[0],[0]);
-            set(obj.ratio_distributionLines(3),'Marker','+','MarkerSize',20,'MarkerFaceColor',[0 0 0]);
+            obj.ratio_distributionLines = plot([0],[0],[0],[0]);
             set(gca,'XTick',[]);
             a = gca;
             l = get(a, 'YLabel');
@@ -415,7 +419,7 @@ classdef BoardPlot < handle
             end
             
             indices=indices(obj.num_points-obj.nbrptbf-obj.nbrptaft:end);
-            startDelta=find(obj.DeltaStart(:,indices)==3);
+            startDelta=find(obj.DeltaStart(:,indices)==3); %% Showing the beginning of the detection
             endDelta=find(obj.DeltaEnd(:,indices)==3);
             if length(endDelta)>1
                 endDelta=endDelta(end);
@@ -424,6 +428,7 @@ classdef BoardPlot < handle
             if length(startDelta)>1
                 startDelta=startDelta(end);
             end
+            %% prepare for plotting
             mycell=[num2cell(obj.Amplifiers(:,indices),2);num2cell(obj.Math(:,indices),2);num2cell(obj.SoundFile(:,indices),2);num2cell(obj.ThresholdFile(:,indices),2);num2cell(obj.Math_filtered_display(:,indices),2)];
             set(obj.SnapshotLines(1:6), {'YData'},mycell);
             set(obj.SnapshotLines(7),'XData',[obj.SnapshotLines(1).XData(startDelta) obj.SnapshotLines(1).XData(startDelta)],'YData',obj.SnapshotAxes.YLim);
@@ -466,13 +471,15 @@ classdef BoardPlot < handle
         DeltaPFCFiltered = filtfilt (obj.DeltaFilt,obj.DeltaPFCData); %filter the data between fmin and fmax
         DeltaPFCEnv = abs( hilbert(DeltaPFCFiltered)); % hilbert transform
         obj.result(5)=mean(DeltaPFCEnv);
-        %%Test SleepState
+        %% Sleep scoring algorithm
         if(obj.threshold_status == 1)
             if(obj.result(1)>10^(obj.gamma_threshold))
                 obj.SleepState=3; %Wake 
                 obj.timerNREM=0;
                 obj.timerREM=0;
-            else 
+                obj.timerWake=obj.timerWake+1;
+            else
+                obj.timerWake=0;
                 if(obj.result(4)>10^(obj.ratio_threshold))
                      obj.SleepState=2; %REM 
                      obj.timerNREM=0;
@@ -487,6 +494,7 @@ classdef BoardPlot < handle
         end
          
          function refresh_sleepstage_now (obj,timestamps,sleepstage)
+             % Plot the hynogram
              time=timestamps(timestamps<obj.maxSleepstages & timestamps>(obj.maxSleepstages-3600));
              sleep=sleepstage(timestamps<obj.maxSleepstages & timestamps>(obj.maxSleepstages-3600));
              time=time(sleep>0);
@@ -498,7 +506,9 @@ classdef BoardPlot < handle
          end
          
          function detection_number_now (obj,timestamps,nb_detection,detections)
-             %set(obj.SleepStageAxes(2),{'XLimMode'},{'auto'});
+             %%Plotting Delta density on the Hypnogram defined as delta
+             %%duration in the last 4 seconds (cf read_continuously
+             %%handles.detections)
              if length(detections)>1
              set(obj.SleepStageLines(2),'XData',detections(detections(:,1)/1E4<obj.maxSleepstages & detections(:,1)/1E4>(obj.maxSleepstages-3600),2)/1E4,'YData',smooth(detections(detections(:,1)/1E4<obj.maxSleepstages & detections(:,1)/1E4>(obj.maxSleepstages-3600),3),5));
              end
@@ -557,14 +567,12 @@ classdef BoardPlot < handle
             set(obj.PhaseSpaceAxes, 'YLim', [(min(obj.ratio_value)) (max(obj.ratio_value))]);
             
             
-            
+            %% plot gamma and theta/delta distributions
             set(obj.gamma_distributionLines(1),'XData',obj.gamma_value,'YData',obj.gamma_prob);
-            set(obj.gamma_distributionLines(2),'XData',obj.gamma_value(end),'YData',obj.gamma_prob(end));
             set(obj.gamma_distributionAxes, 'XLim',  [(min(obj.gamma_value)) (max(obj.gamma_value))]);
              
 
             set(obj.ratio_distributionLines(1),'XData',obj.ratio_prob,'YData',obj.ratio_value);
-            set(obj.ratio_distributionLines(3),'XData',obj.ratio_prob(end),'YData',obj.ratio_value(end));
             set(obj.ratio_distributionAxes, 'YLim', [(min(obj.ratio_value)) (max(obj.ratio_value))]);
             if(obj.threshold_status==1) 
                 [obj.ratio_probSleep,obj.ratio_valueSleep] = ksdensity (ratio(find(gamma<(obj.gamma_threshold))));
@@ -599,7 +607,7 @@ classdef BoardPlot < handle
             obj.coeff_spectrefmax = spectrefmax;
         end
         
-        function obj = Spectre_data_block(obj,datablock)  % Jingyuan Sve the data from Datablock to a new array
+        function obj = Spectre_data_block(obj,datablock)  % Jingyuan Sve the data from Datablock to a new array for further sleep scoring processing
             obj.BullData = [obj.BullData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.bullchannel,:))*1000];
             obj.ThetaData = [obj.ThetaData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Thetachannel,:))*1000];
             obj.DeltaData = [obj.DeltaData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Deltachannel,:))*1000];
@@ -628,10 +636,9 @@ classdef BoardPlot < handle
                 filtered = filtfilt(obj.DeltaFiltPFC_B,obj.DeltaFiltPFC_A ,obj.Math_buffer_to_filter);
                 obj.Math_filtered=filtered(end);
             end
-            
+            %% We call deltaDetection to detect delta waves
             [newdata_sound, newdata_deltaStart, newdata_deltaEnd]=deltaDetection(arduino,newdata_sound,newdata_deltaStart,newdata_deltaEnd,obj,newdata_math,filter_activated);
-            newdata = newdata_original + obj.Offsets(obj.StoreChannels,1)+[obj.OffsetAdjustDeep, obj.OffsetAdjustSup]';  %%%%%
-            
+            newdata = newdata_original + obj.Offsets(obj.StoreChannels,1)+[obj.OffsetAdjustDeep, obj.OffsetAdjustSup]';  % Adjust the offsets            
             
             % inject the data from newdata, newdata_math, newdata_sound to
             % Amplifiers, Math, and SoundFile. these properties are only for

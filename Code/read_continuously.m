@@ -5,6 +5,7 @@ function varargout = read_continuously(varargin)
 %      READ_CONTINUOUSLY, by itself, creates a new READ_CONTINUOUSLY or raises the existing
 %      singleton*.
 %
+
 %      H = READ_CONTINUOUSLY returns the handle to a new READ_CONTINUOUSLY or the handle to
 %      the existing singleton*.
 
@@ -608,16 +609,19 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
     if (handles.boardUI.Plot.threshold_status == 1)
         if handles.boardUI.Plot.SleepState==3% show the sleepstage on screen
             set (handles.sleepStage,'string','Wake');
-            set (handles.timerNREM,'string','');
+            set (handles.sleepStage,'ForegroundColor',[0.7 0 0]);
+            set (handles.timerNREM,'string',strcat(num2str(handles.boardUI.Plot.timerWake),'s'));
             handles.allresult (end,9) = 3; % 3 means Wake
             handles.boardUI.setDigitalOutput(3);
         elseif handles.boardUI.Plot.SleepState==2%
             set (handles.sleepStage,'string','REM');
+            set (handles.sleepStage,'ForegroundColor',[0 0 0.5]);
             set (handles.timerNREM,'string',strcat(num2str(handles.boardUI.Plot.timerREM),'s'));
             handles.allresult(end,9) = 2; % 2 means REM
             handles.boardUI.setDigitalOutput(2);
         elseif handles.boardUI.Plot.SleepState==1%
             set (handles.sleepStage,'string','NREM');
+            set (handles.sleepStage,'ForegroundColor',[0 0.7 0]);
             handles.allresult (end,9) = 1;% 1 means SWS
             set (handles.timerNREM,'string',strcat(num2str(handles.boardUI.Plot.timerNREM),'s'));
             handles.boardUI.setDigitalOutput(1);
@@ -635,6 +639,8 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
         handles.boardUI.refresh_sleepstage(handles.allresult(:,1),handles.allresult(:,9)); % draw the hyponogram
         set(handles.deltaDensity,'string',num2str(handles.boardUI.Plot.deltaDensity));
         
+        
+        %% Sleeping statistics
         set (handles.text75,'string',num2str(sum(handles.allresult(:,9)==1)/60,'%.2f'   ));
         set (handles.text77,'string',num2str( 100 * sum(handles.allresult(:,9)==1) / nnz(handles.allresult(:,9)+1),'%.2f' ) );
         set (handles.numberNREM,'string',num2str(sum(diff([1 handles.allresult(:,9)'==1 1])>0)-1) );
@@ -1704,8 +1710,12 @@ function Apply_Delta_Duration_push_Callback(hObject, eventdata, handles)
 % hObject    handle to Apply_Delta_Duration_push (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.boardUI.Plot.minDuration = str2num(get(Min_Delta_Duration_Edit,'String'))/1000;
-handles.boardUI.Plot.maxDuration = str2num(get(Max_Delta_Duration_Edit,'String'))/1000;
+handles.boardUI.Plot.minDuration = str2num(get(handles.Min_Delta_Duration_Edit,'String'))/1000;
+handles.boardUI.Plot.maxDuration = str2num(get(handles.Max_Delta_Duration_Edit,'String'))/1000;
+
+function Max_Delta_Duration_Edit_Callback(hObject, eventdata, handles)
+
+function Min_Delta_Duration_Edit_Callback(hObject, eventdata, handles)
 
 
 % --- Executes on button press in createEvt.
