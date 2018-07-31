@@ -606,7 +606,11 @@ classdef BoardPlot < handle
             obj.BullData = [obj.BullData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.bullchannel,:))*1000];
             obj.ThetaData = [obj.ThetaData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Thetachannel,:))*1000];
             obj.DeltaData = [obj.DeltaData(2:end), mean(datablock.Chips{obj.ChipIndex}.Amplifiers(obj.Deltachannel,:))*1000];
-            obj.DeltaPFCData = [obj.DeltaPFCData(2:end), obj.Math(obj.SaveIndex)];
+            if(sum(obj.Math_filtered)~=0)
+                obj.DeltaPFCData = [obj.DeltaPFCData(2:end), obj.Math_filtered_display(obj.SaveIndex)];
+            else
+                obj.DeltaPFCData = [obj.DeltaPFCData(2:end), obj.Math(obj.SaveIndex)];
+            end
         end
         
         function obj = process_data_block(obj, datablock,arduino,filter_activated)
