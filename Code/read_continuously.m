@@ -48,7 +48,7 @@ function varargout = read_continuously(varargin)
 
 % Edit the above text to modify the response to help read_continuously
 
-% Last Modified by GUIDE v2.5 30-Jul-2018 15:28:01
+% Last Modified by GUIDE v2.5 31-Jul-2018 10:58:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -637,6 +637,11 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
         end
         handles.boardUI.refresh_sleepstage(handles.allresult(:,1),handles.allresult(:,9)); % draw the hyponogram
         set(handles.deltaDensity,'string',num2str(handles.boardUI.Plot.deltaDensity));
+        if isprop(handles.boardUI.Plot.GMModel,'NumVariables')
+            set(handles.wakeProb,'String',num2str(handles.boardUI.Plot.probWake,'%.2f'));
+            set(handles.REMprob,'String',num2str(handles.boardUI.Plot.probREM,'%.2f'));
+            set(handles.NREMprob,'String',num2str(handles.boardUI.Plot.probNREM,'%.2f'));
+        end
         
         
         %% Sleeping statistics
@@ -1776,3 +1781,10 @@ function clearMeanDelta_Callback(hObject, eventdata, handles)
  handles.boardUI.Plot.meanDelta=zeros(2,handles.boardUI.Plot.nbrptbf+handles.boardUI.Plot.nbrptaft+1);
  handles.boardUI.Plot.numberDetection=0;
  
+
+% --- Executes on button press in enableGM.
+function fitGM_Callback(hObject, eventdata, handles)
+% hObject    handle to fitGM (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+fitGMM(handles.allresult,handles.boardUI.Plot);

@@ -1,5 +1,9 @@
 function drawHypnogram(lines,ax,patches,X,Y)
-
+%Lines => plot lines
+%Ax=> Axes to plot on
+%patches => Patches to plot (color on the hypnogram)
+%X=> timestamps
+%Y=> values
 X=X';
 Y=Y';
 vnan = NaN(size(X)) ;

@@ -132,15 +132,15 @@ classdef BoardPlot < handle
         timerREM
         timerWake
         
-        snakeSize
-        recordingTime
-        maxSleepstages
-        timerDeltaStart
-        timeStartDelta
-        saveIndexStartDelta
-        saveIndexEndDelta
-        minDuration
-        maxDuration
+        snakeSize %Size of the snake
+        recordingTime %Total recording time
+        maxSleepstages %Max timestamp to display in hypnogram
+        timerDeltaStart %Timestamp of the beginning of the delta wave
+        timeStartDelta%Timestamp of the end of the delta wave
+        saveIndexStartDelta%SaveIndex of the end of the delta wave
+        saveIndexEndDelta%SaveIndex of the end of the delta wave
+        minDuration%Min duration to detect
+        maxDuration%Max duration to detect
         
         meanDelta
         numberDetection
@@ -161,6 +161,12 @@ classdef BoardPlot < handle
         % There's some accounting when we need to get the data out to plot
         % (e.g., we'd get [3 4 5 6 7 8 9 10 11 12]); see the details below.
         SaveIndex
+        
+        GMModel
+        probREM
+        probNREM
+        probWake
+        PhaseSpaceAxes
     end
     
     properties (Access = private, Hidden = false)
@@ -191,7 +197,6 @@ classdef BoardPlot < handle
         HilbertPlotAxes
         HilbertPlotLines
         
-        PhaseSpaceAxes
         PhaseSpaceTrajectory
         PhaseSpaceLines
         
