@@ -142,6 +142,10 @@ classdef BoardPlot < handle
         minDuration
         maxDuration
         
+        meanDelta
+        numberDetection
+
+        
         SleepState %SleepState At the moment
         
         % We'll implement a circular queue of data in Amplifiers; 
@@ -195,9 +199,10 @@ classdef BoardPlot < handle
         gamma_distributionLines
         ratio_distributionAxes
         ratio_distributionLines
-
         
         
+        meanDeltaAxes
+        meanDeltaLines
         
     end
     
@@ -205,11 +210,11 @@ classdef BoardPlot < handle
 
         
         function obj = BoardPlot(data_plot,sleep_stage, phase_space,gamma_distr,ratio_distr,...
-                                snapshot, num_channels, samplingfreq)
+                                snapshot, num_channels, samplingfreq,meanDeltaPlot)
             obj.passed=0;
             obj.detec_seuil=100;
-            obj.fired=0;
-            obj.detected=0;
+            obj.fired=0;%Send firing signal to interface=> update plots
+            obj.detected=0;%Send detection signal to interface => update 
             obj.recordingTime=0;
             obj.maxSleepstages=0;
             obj.DataPlotAxes = data_plot; %Axes for plotting signals
@@ -273,6 +278,7 @@ classdef BoardPlot < handle
             obj.minDuration = 0.05;
             obj.maxDuration = 0.15;
             
+            obj.numberDetection=0;
             %% Delta detection filtering
             obj.Math_buffer_to_filter=zeros(1, obj.num_points);
             obj.Math_buffer_filtered=zeros(1, obj.num_points);
@@ -291,10 +297,12 @@ classdef BoardPlot < handle
             %% Configuration of the snapshot window
             obj.durationdb=60/samplingfreq;
             obj.durationbf=0.300; %s for showing the snapshot. the time before the detection to show
-            obj.durationaft=0.500; %s time
+            obj.durationaft=0.500; %s time time after the detection
             obj.nbrptbf=ceil(obj.durationbf*obj.ptperdb/obj.durationdb);
             obj.nbrdbaft=ceil(obj.durationaft/obj.durationdb);
             obj.nbrptaft=ceil(obj.durationaft*obj.ptperdb/obj.durationdb);
+            
+            obj.meanDelta=zeros(2,obj.nbrptbf+obj.nbrptaft+1);
             %% Stimulate during specific sleepstage
             obj.stimulateDuringNREM=false;
             obj.stimulateDuringREM=false;
@@ -328,7 +336,7 @@ classdef BoardPlot < handle
             
             
             axes(obj.SnapshotAxes); 
-            obj.SnapshotLines = plot(obj.Time_real(1:obj.nbrptbf+obj.nbrptaft+1), [obj.Amplifiers(:,1:obj.nbrptbf+obj.nbrptaft+1);obj.Math(1:obj.nbrptbf+obj.nbrptaft+1);obj.SoundFile(1:obj.nbrptbf+obj.nbrptaft+1);obj.ThresholdFile(1:obj.nbrptbf+obj.nbrptaft+1);obj.Math_filtered_display(1:obj.nbrptbf+obj.nbrptaft+1)],[0],[0],'r--',[0],[0],'k--'); %Kejian
+            obj.SnapshotLines = plot(obj.Time_real(1:obj.nbrptbf+obj.nbrptaft+1)-obj.durationbf*1E3, [obj.Amplifiers(:,1:obj.nbrptbf+obj.nbrptaft+1);obj.Math(1:obj.nbrptbf+obj.nbrptaft+1);obj.SoundFile(1:obj.nbrptbf+obj.nbrptaft+1);obj.ThresholdFile(1:obj.nbrptbf+obj.nbrptaft+1);obj.Math_filtered_display(1:obj.nbrptbf+obj.nbrptaft+1)],[0],[0],'r--',[0],[0],'k--'); %Kejian
             set(obj.SnapshotLines(5),'LineStyle','--');
             a = gca;
             l = get(a, 'XLabel');
@@ -339,7 +347,7 @@ classdef BoardPlot < handle
             set(l, 'FontSize', 9);
 
             set(obj.SnapshotAxes, 'YLim', [-0.5 (1 + num_channels*0.5)]);
-            set(obj.SnapshotAxes, 'XLim', [0 obj.Time_real((obj.nbrptbf+obj.nbrptaft+2))]);
+            set(obj.SnapshotAxes, 'XLim', [-obj.durationbf*1E3 obj.Time_real((obj.nbrptbf+obj.nbrptaft+2))-obj.durationbf*1E3]);
             
             a = gca;
             l = get(a, 'XLabel');
@@ -371,7 +379,7 @@ classdef BoardPlot < handle
             set(obj.PhaseSpaceLines(4),'Color',[0 0.7 0],'MarkerSize',10);
             set(obj.PhaseSpaceLines(5),'Color',[0 0 0.5],'MarkerSize',10);
             set(obj.PhaseSpaceLines(6),'LineWidth',2);
-            set(obj.PhaseSpaceLines(2),'MarkerSize',15,'Color',[0.7 1 0.2]);
+            set(obj.PhaseSpaceLines(2),'MarkerSize',15,'MarkerEdgeColor',[0 0 0],'MarkerFaceColor',[0.7 1 0.2]);
             set(obj.PhaseSpaceAxes, 'YLim', [-0.5 2.5]);
             set(obj.PhaseSpaceAxes, 'XLim', [-8 -5.5]);
             obj.snakeSize=10;
@@ -394,6 +402,22 @@ classdef BoardPlot < handle
             set(l, 'FontSize', 9);
             set(obj.ratio_distributionAxes, 'YLim', [-2 3]);
             
+            obj.meanDeltaAxes=meanDeltaPlot;
+            axes(obj.meanDeltaAxes);
+            obj.meanDeltaLines=plot([0],[0],[0],[0]);
+            set(obj.meanDeltaLines(1),'XData',obj.Time_real(1:obj.nbrptbf+obj.nbrptaft+1)-obj.durationbf*1E3,'YData',obj.meanDelta(1,:));
+            set(obj.meanDeltaLines(2),'XData',obj.Time_real(1:obj.nbrptbf+obj.nbrptaft+1)-obj.durationbf*1E3,'YData',obj.meanDelta(2,:));
+            a = gca;
+            l = get(a, 'XLabel');
+            set(l, 'String', 'Time(ms)');
+            set(l, 'FontSize', 9);
+            l = get(a, 'YLabel');
+            %set(l, 'String', 'Amplitude (mV) - each channel is offset 1 mV');
+            set(l, 'FontSize', 9);
+
+            set(obj.meanDeltaAxes, 'YLim', [-0.5 1]);
+            set(obj.meanDeltaAxes, 'XLim', [-obj.durationbf*1E3 obj.Time_real((obj.nbrptbf+obj.nbrptaft+2))-obj.durationbf*1E3]);
+            
         end
         
         function refresh_display_now(obj,filter_activated)
@@ -412,6 +436,7 @@ classdef BoardPlot < handle
         end
         
         function refresh_snapshot(obj)
+            obj.numberDetection=obj.numberDetection+1;
             indices = 1:length(obj.Timestamps);           
             if obj.SaveIndex ~= 1
                 % See note above, where SaveIndex is defined
@@ -431,6 +456,9 @@ classdef BoardPlot < handle
             %% prepare for plotting
             mycell=[num2cell(obj.Amplifiers(:,indices),2);num2cell(obj.Math(:,indices),2);num2cell(obj.SoundFile(:,indices),2);num2cell(obj.ThresholdFile(:,indices),2);num2cell(obj.Math_filtered_display(:,indices),2)];
             set(obj.SnapshotLines(1:6), {'YData'},mycell);
+            obj.meanDelta=obj.meanDelta+(obj.Amplifiers(:,indices)- obj.Offsets(obj.StoreChannels,1)*1E3+[obj.OffsetAdjustDeep, obj.OffsetAdjustSup]'*1E3);
+            set(obj.meanDeltaLines(1),'YData',obj.meanDelta(1,:)/obj.numberDetection);
+            set(obj.meanDeltaLines(2),'YData',obj.meanDelta(2,:)/obj.numberDetection);
             set(obj.SnapshotLines(7),'XData',[obj.SnapshotLines(1).XData(startDelta) obj.SnapshotLines(1).XData(startDelta)],'YData',obj.SnapshotAxes.YLim);
             set(obj.SnapshotLines(8),'XData',[obj.SnapshotLines(1).XData(endDelta) obj.SnapshotLines(1).XData(endDelta)],'YData',obj.SnapshotAxes.YLim);
         end
@@ -452,45 +480,7 @@ classdef BoardPlot < handle
         end
                 
         function hilbert_process_now(obj) %Sleep scoring is done here
-        
-        BullFiltered = filtfilt (obj.bullFilt,obj.BullData); %filter the data between fmin and fmax 
-        BullEnv = abs(hilbert(BullFiltered)); % hilbert transfer
-        obj.result(1) = mean (BullEnv);
-        
-        ThetaFiltered = filtfilt (obj.ThetaFilt,obj.ThetaData); %filter the data between fmin and fmax
-        ThetaEnv = abs( hilbert(ThetaFiltered)); % hilbert transfer
-        obj.result(2) = mean(ThetaEnv);
-        
-        DeltaFiltered = filtfilt (obj.DeltaFilt,obj.DeltaData); %filter the data between fmin and fmax
-        DeltaEnv = abs( hilbert(DeltaFiltered)); % hilbert transform
-        DeltaEnv(DeltaEnv<0.01)=0.01; %To avoid strange values
-        obj.result(3)=mean(DeltaEnv);
-        obj.ratioData = ThetaEnv./DeltaEnv;
-        obj.result(4)= mean(obj.ratioData);
-        
-        DeltaPFCFiltered = filtfilt (obj.DeltaFilt,obj.DeltaPFCData); %filter the data between fmin and fmax
-        DeltaPFCEnv = abs( hilbert(DeltaPFCFiltered)); % hilbert transform
-        obj.result(5)=mean(DeltaPFCEnv);
-        %% Sleep scoring algorithm
-        if(obj.threshold_status == 1)
-            if(obj.result(1)>10^(obj.gamma_threshold))
-                obj.SleepState=3; %Wake 
-                obj.timerNREM=0;
-                obj.timerREM=0;
-                obj.timerWake=obj.timerWake+1;
-            else
-                obj.timerWake=0;
-                if(obj.result(4)>10^(obj.ratio_threshold))
-                     obj.SleepState=2; %REM 
-                     obj.timerNREM=0;
-                     obj.timerREM=obj.timerREM+1;
-                else
-                    obj.SleepState=1; %NREM
-                    obj.timerNREM=obj.timerNREM+1;
-                    obj.timerREM=0;
-                end
-            end
-        end
+        sleepScoring(obj);
         end
          
          function refresh_sleepstage_now (obj,timestamps,sleepstage)

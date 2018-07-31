@@ -52,7 +52,7 @@ classdef BoardUI < handle
     
     methods
         function obj = BoardUI(board, data_plot,sleep_stage,phase_space,gamma_distr,ratio_distr,...
-                              snapshot, chips_popup, channels_popup, fifolag, fifopercentagefull, num_channels,detections)
+                              snapshot, chips_popup, channels_popup, fifolag, fifopercentagefull, num_channels,detections,meanDeltaPlot)
         % Constructor
         %
         % board              handle to an rhd2000.Board object
@@ -76,7 +76,7 @@ classdef BoardUI < handle
             obj.FifoLag = fifolag;
             obj.FifoPercentageFull = fifopercentagefull;
             obj.Plot = BoardPlot(data_plot,sleep_stage,phase_space,gamma_distr,ratio_distr,...
-                                 snapshot,num_channels,frequency(obj.Board.SamplingRate));
+                                 snapshot,num_channels,frequency(obj.Board.SamplingRate),meanDeltaPlot);
             obj.TheChannels=[1 2];
             
             % Set the Chips popup in the Display area to a list of allowed chips

@@ -48,7 +48,7 @@ function varargout = read_continuously(varargin)
 
 % Edit the above text to modify the response to help read_continuously
 
-% Last Modified by GUIDE v2.5 25-Jul-2018 10:22:27
+% Last Modified by GUIDE v2.5 30-Jul-2018 15:28:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -95,7 +95,7 @@ handles.detections=0;
 handles.boardUI = BoardUI(handles.driver.create_board(), ...
                           handles.data_plot,handles.sleep_stage,handles.phase_space, handles.gamma_distribution,...
                           handles.ratio_distribution, handles.snapshot, handles.chips, handles.channels_to_display, ...
-                          handles.FifoLag, handles.FifoPercentageFull,2,handles.detections);  %Jingyuan
+                          handles.FifoLag, handles.FifoPercentageFull,2,handles.detections,handles.meanDelta);  %Jingyuan
 handles.boardUI.Plot.sound_tone = 0; % default sound is tone
   
 handles.saveUI = SaveConfigUI(handles.intan, handles.file_per_signal_type, ...
@@ -275,7 +275,6 @@ handles.chunk_size = config_params.Driver.NumBlocksToRead;
 
 % Create a datablock for reuse
 handles.datablock = rhd2000.datablock.DataBlock(handles.boardUI.Board);
-%handles.datablock2 = rhd2000.datablock.DataBlock(handles.boardUI.Board); %Kejian for treatment
 
 % Tell the board to run continuously
 handles.boardUI.Board.run_continuously();
@@ -1240,11 +1239,15 @@ function arduinoOk_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 name=['COM',handles.COM_No];
+if ~strcmp(handles.arduino.Status,'open')
 handles.arduino=serial(name);
-try
-fopen(handles.arduino);
-catch err
-    rethrow(err);
+    try
+        fopen(handles.arduino);
+    catch err
+        rethrow(err);
+    end
+else
+    disp('Already connected to arduino');
 end
 
 guidata(hObject,handles);
@@ -1740,3 +1743,36 @@ CreateEvent(evt, filename, extens);
 movefile('onlinedelta.evt.det',handles.pathandname);
 
 
+
+
+
+function refractoryTimeDetection_Callback(hObject, eventdata, handles)
+% hObject    handle to refractoryTimeDetection (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.boardUI.Plot.countermax_detection=str2num(get(hObject,'String'))/(1/20000)/60;
+% Hints: get(hObject,'String') returns contents of refractoryTimeDetection as text
+%        str2double(get(hObject,'String')) returns contents of refractoryTimeDetection as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function refractoryTimeDetection_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to refractoryTimeDetection (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in clearMeanDelta.
+function clearMeanDelta_Callback(hObject, eventdata, handles)
+% hObject    handle to clearMeanDelta (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+ handles.boardUI.Plot.meanDelta=zeros(2,handles.boardUI.Plot.nbrptbf+handles.boardUI.Plot.nbrptaft+1);
+ handles.boardUI.Plot.numberDetection=0;
+ 
