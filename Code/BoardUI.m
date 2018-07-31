@@ -15,6 +15,7 @@ classdef BoardUI < handle
     properties
         Board         % Handle of an rhd2000.Board
         Plot
+        paramsFile
     end
     
     properties (Access = private)
@@ -43,11 +44,15 @@ classdef BoardUI < handle
         Plot2 %Kejian
         ChipIndex %Kejian
         FilterDef %Kejian
+        
+        Webcam
+        MaskWebcam
+        previewWindow
     end
     
     methods
-        function obj = BoardUI(board, data_plot,hilbert_plot,sleep_stage,phase_space,gamma_distr,ratio_distr,...
-                              snapshot, chips_popup, channels_popup, fifolag, fifopercentagefull, num_channels)
+        function obj = BoardUI(board, data_plot,sleep_stage,phase_space,gamma_distr,ratio_distr,...
+                              snapshot, chips_popup, channels_popup, fifolag, fifopercentagefull, num_channels,detections,meanDeltaPlot)
         % Constructor
         %
         % board              handle to an rhd2000.Board object
@@ -65,14 +70,13 @@ classdef BoardUI < handle
                 num_channels = 32;
             end
             
-            obj.Board = board;
+            obj.Board = board;        
             obj.ChipsPopup = chips_popup;
             obj.ChannelsToDisplay = channels_popup;
             obj.FifoLag = fifolag;
             obj.FifoPercentageFull = fifopercentagefull;
-            
-            obj.Plot = BoardPlot(data_plot,hilbert_plot,sleep_stage,phase_space,gamma_distr,ratio_distr,...
-                                 snapshot,num_channels,frequency(obj.Board.SamplingRate));
+            obj.Plot = BoardPlot(data_plot,sleep_stage,phase_space,gamma_distr,ratio_distr,...
+                                 snapshot,num_channels,frequency(obj.Board.SamplingRate),meanDeltaPlot);
             obj.TheChannels=[1 2];
             
             % Set the Chips popup in the Display area to a list of allowed chips
@@ -103,8 +107,8 @@ classdef BoardUI < handle
             obj.Plot.refresh_sleepstage_now (timestamps,sleepstage);
         end
         
-        function detection_number(obj,timestamps,nb_detection)
-            obj.Plot.detection_number_now (timestamps,nb_detection);
+        function detection_number(obj,timestamps,nb_detection,detections)
+            obj.Plot.detection_number_now (timestamps,nb_detection,detections);
         end
         
         function refresh_phasespace (obj,timestamps,gamma,ratio)
@@ -125,6 +129,7 @@ classdef BoardUI < handle
             set(obj.FifoPercentageFull, 'String', ...
             sprintf('(%2.2f%% full)', obj.Board.FIFOPercentageFull));
         end
+        
         
         %--------------------------------------------------------------------
         % list_of_chips is used to populate the Chips popup
@@ -165,7 +170,7 @@ classdef BoardUI < handle
             obj.Plot.process_data_block(datablock,arduino,filter_activated);
         end
         
-        function obj = Spectre_data_block(obj,datablock)
+        function obj = Spectre_data_block(obj,datablock)%Processes the datablock for spectrum analysis 
             obj.Plot.Spectre_data_block(datablock);
         end
         
@@ -195,76 +200,62 @@ classdef BoardUI < handle
              
              obj.Plot.Channels=obj.TheChannels; %Kejian
         end
-        
-        
-        function obj = set_bullchannel(obj) %Jingyuan 
-             
-             obj.Plot.bullchannel=obj.bullchannel;
-        end
-        
-         function obj = set_bullfrequence(obj)%Jingyuan  
-             obj.Plot.coeff_bullfmin =obj.bullfmin;
-             obj.Plot.coeff_bullfmax =obj.bullfmax; 
-         end
-         
-        function obj = set_Thetachannel(obj) %Jingyuan 
-             
-             obj.Plot.Thetachannel=obj.Thetachannel;
-        end
-        
-         function obj = set_Thetafrequence(obj)%Jingyuan  
-             obj.Plot.coeff_Thetafmin =obj.Thetafmin;
-             obj.Plot.coeff_Thetafmax =obj.Thetafmax; 
-         end
-         
-         function obj = set_Deltachannel(obj) %Jingyuan 
-             
-             obj.Plot.Deltachannel=obj.Deltachannel;
-        end
-        
-         function obj = set_Deltafrequence(obj)%Jingyuan  
-             obj.Plot.coeff_Deltafmin =obj.Deltafmin;
-             obj.Plot.coeff_Deltafmax =obj.Deltafmax; 
-         end
-        
-        
+  
         function obj=set_thechannels(obj,TheChannels) %Kejian
+            %% Set PFC Channels
             obj.TheChannels=TheChannels;
         end
-        
-        
-        function obj=set_thebullchannel(obj,bullchannel) %Jingyuan
-            obj.bullchannel=bullchannel;
-        end
-       
-        function obj=set_thebullfrequence(obj,bullfmin, bullfmax) %Jingyuan
-            obj.bullfmin=bullfmin;
-            obj.bullfmax=bullfmax;
-        end
-       
-        function obj=set_theThetachannel(obj,Thetachannel) %Jingyuan
-            obj.Thetachannel=Thetachannel;
-        end
-       
-        function obj=set_theThetafrequence(obj,Thetafmin, Thetafmax) %Jingyuan
-            obj.Thetafmin=Thetafmin;
-            obj.Thetafmax=Thetafmax;
-        end
-        
-        function obj=set_theDeltachannel(obj,Deltachannel) %Jingyuan
-            obj.Deltachannel=Deltachannel;
-        end
-       
-        function obj=set_theDeltafrequence(obj,Deltafmin, Deltafmax) %Jingyuan
-            obj.Deltafmin=Deltafmin;
-            obj.Deltafmax=Deltafmax;
-        end
-        
-        function set_thethreshold (obj,gamma_threshold,ratio_threshold)
+
+        function obj=set_thethreshold (obj,gamma_threshold,ratio_threshold)
+            %% Set the sleep scoring thresholds
             obj.Plot.set_thethreshold_now(gamma_threshold,ratio_threshold);
+            if ~isempty(obj.paramsFile)
+                paramsArray=readtable(obj.paramsFile,'Delimiter',';');
+                paramsArray{6,2}=gamma_threshold;
+                paramsArray{7,2}=ratio_threshold;
+                writetable(paramsArray,obj.paramsFile,'Delimiter',';');
+            end
         end
+        function obj=setChannelsSpectre(obj, file) %
+            %% Get the mouse channels from a .csv file and use the data: Important to keep the same order for the parameters
+            paramsArray=readtable(file,'Delimiter',';','Format', '%s%f');
+            obj.paramsFile=file;
+            obj.set_thechannels([paramsArray{5,2}+1 paramsArray{4,2}+1]);
+            obj.set_channels();
+            obj.Plot.bullchannel=paramsArray{1,2}+1;
+            obj.Plot.Deltachannel=paramsArray{2,2}+1;
+            obj.Plot.Thetachannel=paramsArray{3,2}+1;
+            obj.set_thethreshold(paramsArray{6,2},paramsArray{7,2});
             
-       
+        end
+        function obj=setDigitalOutput(obj, value)
+            %% Set intan digital output to indicate sleepstate
+            obj.Board.DigitalOutputs(9:end)=0;
+            obj.Board.DigitalOutputs(8+value)=1;
+        end
+        
+        
+        function obj=webcaminit(obj,previewWindow)
+            %% Init the webcam interface and get first snapshot
+            obj.Webcam=webcam;
+            obj.Webcam.Resolution='320x240'; %small resolution
+            previewWeb = snapshot(obj.Webcam);
+            previewWeb=previewWeb(40:125,41:241); %Get snaphshot with mask
+            set(previewWindow,'Units','pixels');
+            resizePos = get(previewWindow,'Position');
+            previewWeb= imresize(previewWeb, [resizePos(3) resizePos(3)]);%% Resize to fit the axes
+            imshow(previewWeb,'Parent', previewWindow);
+        end
+        
+        function obj=refreshWebcam(obj,previewWindow)
+            %% Refresh webcam snapshot
+            previewWeb = snapshot(obj.Webcam);
+            previewWeb=previewWeb(40:125,41:241,:);
+            set(previewWindow,'Units','pixels');
+            resizePos = get(previewWindow,'Position');
+            previewWeb= imresize(previewWeb, [resizePos(3) resizePos(3)]); %% Resize to fit the axes
+            imshow(previewWeb,'Parent', previewWindow);
+        end   
     end
     
     
