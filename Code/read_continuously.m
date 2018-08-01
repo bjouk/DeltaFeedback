@@ -154,7 +154,7 @@ handles.boardUI.set_thechannels([1 2]); %Kejian
 handles.gamma_threshold=6.5; %Default value for the threshold
 handles.ratio_threshold=1.1;% Default value for the ratio
 % Clear the saving information
-handles.saving = false;
+handles.saving = true;
 handles.saveUI.BaseName = '';
 
 % Create a timer - it's used when you click Run
