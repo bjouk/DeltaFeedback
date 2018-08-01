@@ -86,8 +86,7 @@ classdef BoardUI < handle
         end
         
         
-        function hilbert_process (obj) %Jingyuan
-        % update the spectre plot
+        function hilbert_process (obj)
             obj.Plot.hilbert_process_now();
         end
         

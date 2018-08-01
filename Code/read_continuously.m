@@ -638,9 +638,9 @@ if (handles.spectre_nowtime >= (handles.spectre_lastcal + handles.spectre_refres
         handles.boardUI.refresh_sleepstage(handles.allresult(:,1),handles.allresult(:,9)); % draw the hyponogram
         set(handles.deltaDensity,'string',num2str(handles.boardUI.Plot.deltaDensity));
         if isprop(handles.boardUI.Plot.GMModel,'NumVariables')
-            set(handles.wakeProb,'String',num2str(handles.boardUI.Plot.probWake,'%.2f'));
-            set(handles.REMprob,'String',num2str(handles.boardUI.Plot.probREM,'%.2f'));
-            set(handles.NREMprob,'String',num2str(handles.boardUI.Plot.probNREM,'%.2f'));
+            set(handles.wakeProb,'String',strcat('Wake: ',num2str(handles.boardUI.Plot.probWake*100,'%.1f'),'%'));
+            set(handles.REMprob,'String',strcat('REM: ',num2str(handles.boardUI.Plot.probREM*100,'%.1f'),'%'));
+            set(handles.NREMprob,'String',strcat('NREM: ',num2str(handles.boardUI.Plot.probNREM*100,'%.1f'),'%'));
         end
         
         
